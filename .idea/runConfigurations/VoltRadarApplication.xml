@@ -1,5 +1,7 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="VoltRadarApplication" type="Application" factoryName="Application" nameIsGenerated="true">
+    <option name="ALTERNATIVE_JRE_PATH" value="ms-25" />
+    <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
     <option name="MAIN_CLASS_NAME" value="sk.brutech.voltradar.VoltRadarApplication" />
     <module name="voltradar-backend" />
     <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/backend" />
