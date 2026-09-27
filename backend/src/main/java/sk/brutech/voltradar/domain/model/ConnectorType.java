@@ -1,4 +1,4 @@
-package com.voltradar.domain.model;
+package sk.brutech.voltradar.domain.model;
 
 public enum ConnectorType {
     AC_TYPE_2,

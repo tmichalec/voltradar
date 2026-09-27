@@ -27,5 +27,5 @@ server:
 
 logging:
   level:
-    com.voltradar: DEBUG
+    sk.brutech.voltradar: DEBUG
     org.springframework.web: INFO

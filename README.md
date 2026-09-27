@@ -117,7 +117,7 @@ voltradar/
 │   └── docker-compose.sh    # Simple management script with project name support
 ├── .github/                 # CI/CD workflows
 ├── backend/                 # Java 25 + Spring Boot backend
-│   ├── src/main/java/com/voltradar/
+│   ├── src/main/java/sk/brutech/voltradar/
 │   │   ├── domain/          # Domain models (Station, Connector, Tariff, Mode)
 │   │   ├── calculation/     # Effective price calculation engine
 │   │   ├── ingestion/       # CPO data ingestion adapters (ZSE Drive)

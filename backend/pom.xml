@@ -10,9 +10,9 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.voltradar</groupId>
+    <groupId>sk.brutech.voltradar</groupId>
     <artifactId>voltradar-backend</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.1.0-SNAPSHOT</version>
     <name>voltradar-backend</name>
     <description>VoltRadar - EV Charging Cost Optimization Platform</description>
 

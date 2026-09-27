@@ -1,4 +1,4 @@
-package com.voltradar.domain.model;
+package sk.brutech.voltradar.domain.model;
 
 public enum OptimizationMode {
     FAST,

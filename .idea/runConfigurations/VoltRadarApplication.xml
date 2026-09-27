@@ -1,11 +1,11 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="VoltRadarApplication" type="Application" factoryName="Application" nameIsGenerated="true">
-    <option name="MAIN_CLASS_NAME" value="com.voltradar.VoltRadarApplication" />
+    <option name="MAIN_CLASS_NAME" value="sk.brutech.voltradar.VoltRadarApplication" />
     <module name="voltradar-backend" />
     <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/backend" />
     <extension name="coverage">
       <pattern>
-        <option name="PATTERN" value="com.voltradar.*" />
+        <option name="PATTERN" value="sk.brutech.voltradar.*" />
         <option name="ENABLED" value="true" />
       </pattern>
     </extension>

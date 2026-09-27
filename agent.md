@@ -56,7 +56,15 @@ Agents must adhere to the following domain modeling rules:
 
 ---
 
-## 4. Coding & Communication Standards
+## 4. Coding & Project Standards
+
+### Package & Versioning Conventions
+- **Base Package**: `sk.brutech.voltradar`
+- **Semantic Versioning (SemVer 2.0.0)**: Releases and modules adhere strictly to `MAJOR.MINOR.PATCH`:
+  - `MAJOR`: Incompatible API changes, breaking architectural shifts, or major redesigns.
+  - `MINOR`: New functionality added in a backwards-compatible manner.
+  - `PATCH`: Backwards-compatible bug fixes and small maintenance patches.
+  - Suffix `-SNAPSHOT` indicates active development before a release. Current base version: `0.1.0-SNAPSHOT`.
 
 ### Language Rules
 - **Codebase**: 100% in **English** (class names, variable names, method names, comments, commit messages, API specs, and technical documentation).
@@ -73,7 +81,7 @@ Agents must adhere to the following domain modeling rules:
 
 ## 5. Development Workflow for Agents
 
-1. **Investigate Before Editing**: Understand the existing domain models in `com.voltradar.domain` before adding new entities.
+1. **Investigate Before Editing**: Understand the existing domain models in `sk.brutech.voltradar.domain` before adding new entities.
 2. **Deterministic Calculations**: Unit test all tariff calculations against known edge cases (depleted prepaid packages, overstay penalties, AC vs. DC rate changes).
 3. **Keep CPO Ingestion Modular**: Keep provider-specific scrapers/clients (e.g., `ZseDriveClient`) isolated behind a generic provider interface (`CpoIngestionService`).
 4. **Commitment & Version Control Workflow**: Commit changes after each logically complete functionality or feature. Remind the user when a cohesive unit of work is completed to keep commits clean, granular, and traceable.
