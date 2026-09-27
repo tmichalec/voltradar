@@ -63,6 +63,7 @@ Agents must adhere to the following domain modeling rules:
 - **User Communication**: In **Slovak** (`sk`) as requested by the user, while keeping technical terms and code snippets cleanly formatted in English.
 
 ### Code Style & Quality
+- **Line Length**: Maximum line length is **120 characters** (minor overflow is permitted only exceptionally when wrapping impairs readability).
 - Favor immutable domain models and `record` types where appropriate.
 - Keep domain calculation logic deterministic, pure, and thoroughly covered by unit tests.
 - Avoid premature optimizations, but ensure spatial queries leverage PostGIS indexes rather than in-memory distance loops.
