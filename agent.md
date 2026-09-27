@@ -66,6 +66,29 @@ Agents must adhere to the following domain modeling rules:
   - `PATCH`: Backwards-compatible bug fixes and small maintenance patches.
   - Suffix `-SNAPSHOT` indicates active development before a release. Current base version: `0.1.0-SNAPSHOT`.
 
+### Commit Message Conventions (Conventional Commits 1.0.0)
+All commits must follow the **Conventional Commits** specification:
+```text
+<type>(<optional scope>): <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+- **Allowed Types**:
+  - `feat`: A new feature or domain capability (triggers SemVer MINOR).
+  - `fix`: A bug fix (triggers SemVer PATCH).
+  - `docs`: Documentation only changes (e.g., README.md, agent.md).
+  - `style`: Changes that do not affect the meaning of code (formatting, whitespace, imports).
+  - `refactor`: Code change that neither fixes a bug nor adds a feature.
+  - `perf`: Performance improvements.
+  - `test`: Adding or correcting tests.
+  - `build`: Changes affecting build system, packaging, or external dependencies (Maven, Docker).
+  - `ci`: Changes to CI/CD workflows and automation scripts.
+  - `chore`: Repository tooling, auxiliary configs, or maintenance tasks.
+- **Breaking Changes**: Denoted with `!` before the colon (e.g., `feat(tariff)!: rework pricing contract`) or a `BREAKING CHANGE:` footer (triggers SemVer MAJOR).
+- **Rules**: Descriptions must be in **English**, concise, in the imperative mood, and conform to the 120-character line length limit.
+
 ### Language Rules
 - **Codebase**: 100% in **English** (class names, variable names, method names, comments, commit messages, API specs, and technical documentation).
 - **User Communication**: In **Slovak** (`sk`) as requested by the user, while keeping technical terms and code snippets cleanly formatted in English.
