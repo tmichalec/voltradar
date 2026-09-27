@@ -72,10 +72,21 @@ VoltRadar is an electric vehicle (EV) charging discovery and cost optimization p
 
 ### 1. Start Infrastructure (PostGIS + Redis)
 
-Run the local database and cache services:
+Use the simple Docker Compose script in `.docker/` (supports any `docker compose` arguments and custom project name):
 
 ```bash
-docker compose up -d
+# Start infrastructure in background (default project: voltradar)
+./.docker/docker-compose.sh
+
+# Stop infrastructure
+./.docker/docker-compose.sh down
+
+# Check status or follow logs
+./.docker/docker-compose.sh ps
+./.docker/docker-compose.sh logs -f
+
+# Custom project name (if running multiple instances)
+COMPOSE_PROJECT_NAME=my-voltradar ./.docker/docker-compose.sh
 ```
 
 This starts:
@@ -84,6 +95,10 @@ This starts:
 
 ### 2. Build and Run Backend
 
+**In IntelliJ IDEA:**
+- Select and run the preconfigured **`VoltRadarApplication`** Run Configuration (or click the Run icon next to `VoltRadarApplication.java`).
+
+**Via Terminal / Maven:**
 ```bash
 cd backend
 mvn clean spring-boot:run
@@ -97,6 +112,9 @@ The backend starts at `http://localhost:8080`.
 
 ```text
 voltradar/
+├── .docker/                 # Docker Compose infrastructure & helper scripts
+│   ├── docker-compose.yml   # PostGIS & Redis service definitions
+│   └── docker-compose.sh    # Simple management script with project name support
 ├── .github/                 # CI/CD workflows
 ├── backend/                 # Java 25 + Spring Boot backend
 │   ├── src/main/java/com/voltradar/
@@ -107,7 +125,6 @@ voltradar/
 │   │   └── api/             # REST controllers & DTOs
 │   ├── src/main/resources/  # application.yml configuration
 │   └── pom.xml              # Maven dependencies and build plugins
-├── docker-compose.yml       # Local & Umbrel service definitions (PostGIS + Redis)
 ├── agent.md                 # Agent guidelines, domain definitions, and conventions
 └── README.md                # Main documentation
 ```
