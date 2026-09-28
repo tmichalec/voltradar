@@ -81,7 +81,7 @@ class ZseDriveClientTest {
                 .andRespond(withSuccess(fixture("roaming-station.json"), MediaType.APPLICATION_JSON));
         var connector = client.fetchStation("440826").station().connectors().getFirst();
         assertThat(connector.type().id()).isEqualTo(1L);
-        assertThat(ZseConnectorValues.type(connector)).hasValue(ConnectorType.DC_CCS);
+        assertThat(ZseConnectorValues.type(connector)).hasValue(ConnectorType.CCS);
         server.verify();
     }
 

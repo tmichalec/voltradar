@@ -1,1 +1,57 @@
-{"station":{"id":440826,"name":"Polus Bratislava (Greenway CPO)","contractor":"ROAMING","canUserCharge":false,"location":{"lat":48.168018,"lon":17.140044},"rating":{"average":0,"total":0},"address":{"street":"Junácka 10","city":"Bratislava","zip":"831 04","slug":"junacka-10-bratislava-831-04","country":"SVK"},"connectors":[{"id":1,"evseID":1,"state":"AVAILABLE","type":{"id":1,"name":"CCS","scheme":"https://zsedrive.sk/files/images/7lpac2ebsam4rdz.png"},"pricing":[{"name":"Výkon","value":"150 kW"},{"name":"Cena","value":"0.69 €/kWh"},{"name":"Parkovanie","value":"3 €/h"},{"name":"Bezplatné parkovanie","value":"60 min"}],"nightTariff":null,"subscribed":false}],"exeStationType":null,"isPaidParking":false}}
+{
+  "station": {
+    "id": 440826,
+    "name": "Polus Bratislava (Greenway CPO)",
+    "contractor": "ROAMING",
+    "canUserCharge": false,
+    "location": {
+      "lat": 48.168018,
+      "lon": 17.140044
+    },
+    "rating": {
+      "average": 0,
+      "total": 0
+    },
+    "address": {
+      "street": "Junácka 10",
+      "city": "Bratislava",
+      "zip": "831 04",
+      "slug": "junacka-10-bratislava-831-04",
+      "country": "SVK"
+    },
+    "connectors": [
+      {
+        "id": 1,
+        "evseID": 1,
+        "state": "AVAILABLE",
+        "type": {
+          "id": 1,
+          "name": "CCS",
+          "scheme": "https://zsedrive.sk/files/images/7lpac2ebsam4rdz.png"
+        },
+        "pricing": [
+          {
+            "name": "Výkon",
+            "value": "150 kW"
+          },
+          {
+            "name": "Cena",
+            "value": "0.69 €/kWh"
+          },
+          {
+            "name": "Parkovanie",
+            "value": "3 €/h"
+          },
+          {
+            "name": "Bezplatné parkovanie",
+            "value": "60 min"
+          }
+        ],
+        "nightTariff": null,
+        "subscribed": false
+      }
+    ],
+    "exeStationType": null,
+    "isPaidParking": false
+  }
+}

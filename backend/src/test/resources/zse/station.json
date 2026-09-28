@@ -1,1 +1,94 @@
-{"station":{"id":459600,"name":"ZSE DriveX BA D2 Jarovce smer HU HDV 6-7 Ultra","remoteID":"310437","note":null,"evseID":null,"contractor":"EON","openHours":null,"cover":null,"canUserCharge":true,"location":{"lat":48.08653113,"lon":17.09845873},"rating":{"average":0,"total":0},"address":{"street":"Diaľnica D2","number":null,"city":"Jarovce","country":"SK","zip":null},"connectors":[{"id":1,"evseID":310437,"state":"AVAILABLE","type":{"id":4,"name":"CCS","scheme":"https://zsedrive.sk/files/images/7lpac2ebsam4rdz.png","socketType":"DC"},"pricing":[{"name":"Výkon","value":"400 kW"},{"name":"Cena","value":"0.79 €/kWh"},{"name":"Parkovanie","value":"3 €/hod"},{"name":"Bezplatné parkovanie","value":"60 min"}],"nightTariff":null,"subscribed":false},{"id":2,"evseID":310438,"state":"AVAILABLE","type":{"id":4,"name":"CCS","scheme":"https://zsedrive.sk/files/images/7lpac2ebsam4rdz.png","socketType":"DC"},"pricing":[{"name":"Výkon","value":"400 kW"},{"name":"Cena","value":"0.79 €/kWh"},{"name":"Parkovanie","value":"3 €/hod"},{"name":"Bezplatné parkovanie","value":"60 min"}],"nightTariff":null,"subscribed":false}],"exeStationType":"DriveX","isPaidParking":false}}
+{
+  "station": {
+    "id": 459600,
+    "name": "ZSE DriveX BA D2 Jarovce smer HU HDV 6-7 Ultra",
+    "remoteID": "310437",
+    "note": null,
+    "evseID": null,
+    "contractor": "EON",
+    "openHours": null,
+    "cover": null,
+    "canUserCharge": true,
+    "location": {
+      "lat": 48.08653113,
+      "lon": 17.09845873
+    },
+    "rating": {
+      "average": 0,
+      "total": 0
+    },
+    "address": {
+      "street": "Diaľnica D2",
+      "number": null,
+      "city": "Jarovce",
+      "country": "SK",
+      "zip": null
+    },
+    "connectors": [
+      {
+        "id": 1,
+        "evseID": 310437,
+        "state": "AVAILABLE",
+        "type": {
+          "id": 4,
+          "name": "CCS",
+          "scheme": "https://zsedrive.sk/files/images/7lpac2ebsam4rdz.png",
+          "socketType": "DC"
+        },
+        "pricing": [
+          {
+            "name": "Výkon",
+            "value": "400 kW"
+          },
+          {
+            "name": "Cena",
+            "value": "0.79 €/kWh"
+          },
+          {
+            "name": "Parkovanie",
+            "value": "3 €/hod"
+          },
+          {
+            "name": "Bezplatné parkovanie",
+            "value": "60 min"
+          }
+        ],
+        "nightTariff": null,
+        "subscribed": false
+      },
+      {
+        "id": 2,
+        "evseID": 310438,
+        "state": "AVAILABLE",
+        "type": {
+          "id": 4,
+          "name": "CCS",
+          "scheme": "https://zsedrive.sk/files/images/7lpac2ebsam4rdz.png",
+          "socketType": "DC"
+        },
+        "pricing": [
+          {
+            "name": "Výkon",
+            "value": "400 kW"
+          },
+          {
+            "name": "Cena",
+            "value": "0.79 €/kWh"
+          },
+          {
+            "name": "Parkovanie",
+            "value": "3 €/hod"
+          },
+          {
+            "name": "Bezplatné parkovanie",
+            "value": "60 min"
+          }
+        ],
+        "nightTariff": null,
+        "subscribed": false
+      }
+    ],
+    "exeStationType": "DriveX",
+    "isPaidParking": false
+  }
+}

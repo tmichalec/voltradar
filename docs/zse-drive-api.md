@@ -120,7 +120,10 @@ Identifiers are scoped: use provider + station ID + connector ID; two plugs can 
 
 The connector catalog returns CCS=4, CHAdeMO=5 and Mennekes Type 2=2.
 Roaming detail 440826 returns CCS with type ID **1**. Normalize using the observed names,
-not a universal numeric ID mapping. Unknown type names remain unmapped.
+not a universal numeric ID mapping. The domain intentionally normalizes only `CCS` and
+`MENNEKES_TYPE_2`; CHAdeMO and unknown type names remain unmapped in domain calculations while
+the raw provider type remains available in the DTO. CCS is classified by connector type even when
+its advertised power is low (for example, a 24 kW roaming CCS connector).
 
 The map JavaScript recognizes `AVAILABLE`, `BUSY`, `DISCONNECTED`, `RESERVED`.
 The captured details returned `AVAILABLE`; this does not validate upstream timing or every state transition.
