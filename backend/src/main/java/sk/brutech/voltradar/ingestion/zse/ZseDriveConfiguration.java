@@ -20,7 +20,10 @@ public class ZseDriveConfiguration {
         if (readTimeout.isNegative() || readTimeout.isZero()) {
             throw new IllegalArgumentException("ZSE read timeout must be positive");
         }
-        var httpClient = HttpClient.newBuilder().connectTimeout(connectTimeout).build();
+        var httpClient = HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_1_1)
+                .connectTimeout(connectTimeout)
+                .build();
         var requestFactory = new JdkClientHttpRequestFactory(httpClient);
         requestFactory.setReadTimeout(readTimeout);
         return new ZseDriveClient(RestClient.builder().baseUrl(baseUrl.toString())

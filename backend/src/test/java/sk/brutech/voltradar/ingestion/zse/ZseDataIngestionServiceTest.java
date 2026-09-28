@@ -60,4 +60,24 @@ class ZseDataIngestionServiceTest {
 
         assertThat(locations).isEmpty();
     }
+
+    @Test
+    void respectsCustomConcurrencyLimit() throws IOException {
+        var throttledService = new ZseDataIngestionService(zseClient, aggregator, 2);
+
+        String stationsJson = new ClassPathResource("zse/stations.json").getContentAsString(StandardCharsets.UTF_8);
+        ZseDriveDtos.StationsResponse stationsResponse =
+                objectMapper.readValue(stationsJson, ZseDriveDtos.StationsResponse.class);
+
+        String stationJson = new ClassPathResource("zse/station.json").getContentAsString(StandardCharsets.UTF_8);
+        ZseDriveDtos.StationResponse stationResponse =
+                objectMapper.readValue(stationJson, ZseDriveDtos.StationResponse.class);
+
+        when(zseClient.fetchStations(any())).thenReturn(stationsResponse);
+        when(zseClient.fetchStation(any())).thenReturn(stationResponse);
+
+        List<ChargingLocation> locations = throttledService.ingestBratislava();
+
+        assertThat(locations).isNotEmpty();
+    }
 }

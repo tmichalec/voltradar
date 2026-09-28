@@ -38,6 +38,7 @@ integrations:
     base-url: ${ZSE_DRIVE_BASE_URL:https://zsedrive.sk}
     connect-timeout: 5s
     read-timeout: 15s
+    concurrency-limit: ${ZSE_DRIVE_CONCURRENCY_LIMIT:8}
 
 logging:
   level:

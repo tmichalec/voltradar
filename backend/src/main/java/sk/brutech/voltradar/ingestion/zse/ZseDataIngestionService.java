@@ -2,6 +2,7 @@ package sk.brutech.voltradar.ingestion.zse;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import sk.brutech.voltradar.domain.model.ChargingLocation;
 import sk.brutech.voltradar.domain.model.ProviderStation;
@@ -14,6 +15,7 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Semaphore;
 
 /**
  * Service orchestrating real-time and batch ingestion of ZSE Drive charging stations,
@@ -32,10 +34,20 @@ public class ZseDataIngestionService {
 
     private final ZseDriveClient zseClient;
     private final ZseLocationAggregator aggregator;
+    private final int concurrencyLimit;
 
     public ZseDataIngestionService(ZseDriveClient zseClient, ZseLocationAggregator aggregator) {
+        this(zseClient, aggregator, 8);
+    }
+
+    public ZseDataIngestionService(
+            ZseDriveClient zseClient,
+            ZseLocationAggregator aggregator,
+            @Value("${integrations.zse-drive.concurrency-limit:8}") int concurrencyLimit
+    ) {
         this.zseClient = Objects.requireNonNull(zseClient, "zseClient must not be null");
         this.aggregator = Objects.requireNonNull(aggregator, "aggregator must not be null");
+        this.concurrencyLimit = Math.max(1, concurrencyLimit);
     }
 
     /**
@@ -88,12 +100,30 @@ public class ZseDataIngestionService {
             return List.of();
         }
 
-        log.info("Fetching details for {} ZSE stations using Java Virtual Threads", stationIds.size());
+        log.info(
+                "Fetching details for {} ZSE stations using Java Virtual Threads (concurrency limit: {})",
+                stationIds.size(),
+                concurrencyLimit
+        );
         List<ProviderStation> providerStations = new ArrayList<>();
+        Semaphore semaphore = new Semaphore(concurrencyLimit);
 
         try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
             List<CompletableFuture<ProviderStation>> futures = stationIds.stream()
-                    .map(id -> CompletableFuture.supplyAsync(() -> fetchAndMapStation(id), executor))
+                    .map(id -> CompletableFuture.supplyAsync(() -> {
+                        try {
+                            semaphore.acquire();
+                            try {
+                                return fetchAndMapStation(id);
+                            } finally {
+                                semaphore.release();
+                            }
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            log.warn("Interrupted while fetching station {}", id);
+                            return null;
+                        }
+                    }, executor))
                     .toList();
 
             for (CompletableFuture<ProviderStation> future : futures) {
