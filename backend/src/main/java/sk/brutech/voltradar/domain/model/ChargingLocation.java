@@ -3,14 +3,13 @@ package sk.brutech.voltradar.domain.model;
 import java.util.List;
 import java.util.Objects;
 import java.util.OptionalInt;
-import java.util.UUID;
 
 /**
  * Aggregated domain entity representing a unified physical charging location.
  * May combine multiple provider stations (e.g. adjacent stations on the same parking lot).
  */
 public record ChargingLocation(
-        UUID id,
+        String id,
         String name,
         GeoCoordinates coordinates,
         Address address,

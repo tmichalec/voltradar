@@ -33,7 +33,7 @@ class ZseIngestionControllerTest {
     @Test
     void returnsBratislavaLocations() throws Exception {
         ChargingLocation location = new ChargingLocation(
-                UUID.randomUUID(),
+                "loc-ba-retro",
                 "Bratislava - OC Retro",
                 new GeoCoordinates(48.152, 17.155),
                 new Address("Nevädzová 6", "Bratislava", "82101", "SK"),

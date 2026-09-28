@@ -3,14 +3,13 @@ package sk.brutech.voltradar.domain.model;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 
 /**
  * Represents a physical charging dispenser/stand on a location.
  * May host multiple connectors/EVSEs that share total physical power.
  */
 public record ChargerUnit(
-        UUID id,
+        String id,
         String label,
         ConfidenceLevel confidence,
         SharingStatus sharingStatus,

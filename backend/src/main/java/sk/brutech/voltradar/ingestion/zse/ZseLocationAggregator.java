@@ -16,7 +16,6 @@ import sk.brutech.voltradar.domain.override.LocationsGistDocument;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -24,7 +23,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -82,9 +80,7 @@ public final class ZseLocationAggregator {
             List<ProviderStation> stations
     ) {
         ProviderStation primary = stations.getFirst();
-        UUID locationId = UUID.nameUUIDFromBytes(
-                ("LOCATION:OVERRIDE:" + override.locationId()).getBytes(StandardCharsets.UTF_8)
-        );
+        String locationId = override.locationId();
 
         GeoCoordinates coordinates = computeCentroid(stations);
         Address address = primary.address();
@@ -95,9 +91,7 @@ public final class ZseLocationAggregator {
 
         if (override.chargerUnits() != null) {
             for (ChargerUnitOverride unitOverride : override.chargerUnits()) {
-                UUID unitId = UUID.nameUUIDFromBytes(
-                        ("UNIT:" + override.locationId() + ":" + unitOverride.unitId()).getBytes(StandardCharsets.UTF_8)
-                );
+                String unitId = unitOverride.unitId();
                 ConfidenceLevel confidence = unitOverride.confidence() != null
                         ? unitOverride.confidence()
                         : ConfidenceLevel.CONFIRMED;
@@ -176,9 +170,7 @@ public final class ZseLocationAggregator {
                 .sorted()
                 .collect(Collectors.joining("-"));
 
-        UUID locationId = UUID.nameUUIDFromBytes(
-                ("LOCATION:CLUSTER:" + clusterKey).getBytes(StandardCharsets.UTF_8)
-        );
+        String locationId = "zse-" + clusterKey;
 
         GeoCoordinates coordinates = computeCentroid(cluster);
         Address address = primary.address();
@@ -200,7 +192,7 @@ public final class ZseLocationAggregator {
                         .max(BigDecimal::compareTo)
                         .orElse(new BigDecimal("150"));
 
-                UUID unitId = UUID.nameUUIDFromBytes(("UNIT:INFERRED:" + evseId).getBytes(StandardCharsets.UTF_8));
+                String unitId = "stand-" + evseId.toLowerCase().replace('*', '-');
                 chargerUnits.add(new ChargerUnit(
                         unitId,
                         "Stand " + evseId,

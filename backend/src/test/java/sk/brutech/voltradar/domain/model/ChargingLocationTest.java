@@ -73,7 +73,7 @@ class ChargingLocationTest {
         );
 
         ChargerUnit confirmedStand = new ChargerUnit(
-                UUID.randomUUID(),
+                "unit-retro-1",
                 "Stojan 1 (Alpitronic HYC300)",
                 ConfidenceLevel.CONFIRMED,
                 SharingStatus.SHARED,
@@ -84,7 +84,7 @@ class ChargingLocationTest {
         );
 
         ChargingLocation location = new ChargingLocation(
-                UUID.randomUUID(),
+                "loc-ba-retro",
                 "Bratislava - OC Retro",
                 new GeoCoordinates(48.152, 17.154),
                 new Address("Nevädzová 6", "Bratislava", "82101", "SK"),
@@ -93,6 +93,7 @@ class ChargingLocationTest {
                 null
         );
 
+        assertThat(location.id()).isEqualTo("loc-ba-retro");
         assertThat(location.metadata().providerStationsCount()).isEqualTo(2);
         assertThat(location.metadata().confirmedChargerUnitsCount()).hasValue(1);
         assertThat(location.metadata().totalConnectorsCount()).isEqualTo(3);

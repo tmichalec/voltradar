@@ -41,6 +41,7 @@ class ZseLocationAggregatorTest {
                 .filter(l -> l.providerStations().size() == 2)
                 .findFirst()
                 .orElseThrow();
+        assertThat(clusterLocation.id()).isEqualTo("zse-101-102");
         assertThat(clusterLocation.metadata().totalConnectorsCount()).isEqualTo(2);
         assertThat(clusterLocation.metadata().providerStationsCount()).isEqualTo(2);
 
@@ -48,6 +49,7 @@ class ZseLocationAggregatorTest {
                 .filter(l -> l.providerStations().size() == 1)
                 .findFirst()
                 .orElseThrow();
+        assertThat(singleLocation.id()).isEqualTo("zse-201");
         assertThat(singleLocation.providerStations().getFirst().providerStationId()).isEqualTo("201");
     }
 
@@ -83,8 +85,10 @@ class ZseLocationAggregatorTest {
 
         assertThat(locations).hasSize(1);
         ChargingLocation retro = locations.getFirst();
+        assertThat(retro.id()).isEqualTo("loc-retro");
         assertThat(retro.name()).isEqualTo("Bratislava - OC Retro");
         assertThat(retro.chargerUnits()).hasSize(1);
+        assertThat(retro.chargerUnits().getFirst().id()).isEqualTo("unit-1");
         assertThat(retro.chargerUnits().getFirst().confidence()).isEqualTo(ConfidenceLevel.CONFIRMED);
 
         // Check power sharing calculation:
