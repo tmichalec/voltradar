@@ -45,6 +45,7 @@ Agents must adhere to the following domain modeling rules:
 - **Language**: Java 25.
   - Utilize modern Java features: `records`, `sealed classes/interfaces`, enhanced `switch` expressions with pattern matching, and **Virtual Threads** (`Project Loom`) for high-throughput I/O and scraping.
 - **Framework**: Spring Boot 4.1.x with Spring Data JPA and Hibernate Spatial.
+  - Keep `spring.jpa.open-in-view: false` (OSIV disabled) to avoid connection pool starvation and hidden N+1 queries outside transactions. Handle lazy fetching explicitly in service/repository layers or via DTO projections.
 - **Database**: PostgreSQL 16 with PostGIS extension for spatial queries (e.g., `ST_DWithin`, spatial indexes `GiST`).
 - **Cache**: Redis 7 for high-frequency live connector statuses and TTL-managed transient states.
 - **Build Tool**: Apache Maven (`pom.xml`).
