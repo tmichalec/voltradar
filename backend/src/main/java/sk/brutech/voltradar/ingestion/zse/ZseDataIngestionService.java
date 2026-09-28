@@ -2,6 +2,7 @@ package sk.brutech.voltradar.ingestion.zse;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import sk.brutech.voltradar.domain.model.ChargingLocation;
@@ -40,6 +41,7 @@ public class ZseDataIngestionService {
         this(zseClient, aggregator, 8);
     }
 
+    @Autowired
     public ZseDataIngestionService(
             ZseDriveClient zseClient,
             ZseLocationAggregator aggregator,
