@@ -1,5 +1,7 @@
 package sk.brutech.voltradar.ingestion.zse;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
@@ -15,6 +17,8 @@ import java.util.function.Predicate;
 
 /** Read-only, unauthenticated API used by the public ZSE Drive web application. */
 public final class ZseDriveClient implements CpoIngestionService<StationResponse, ProgramsResponse> {
+    private static final Logger log = LoggerFactory.getLogger(ZseDriveClient.class);
+
     private final RestClient restClient;
 
     public ZseDriveClient(RestClient restClient) {
@@ -69,7 +73,11 @@ public final class ZseDriveClient implements CpoIngestionService<StationResponse
 
     private <T> T get(Function<UriBuilder, URI> uri, Class<T> type, Predicate<T> valid) {
         try {
-            T result = restClient.get().uri(uri).accept(MediaType.APPLICATION_JSON)
+            T result = restClient.get().uri(uriBuilder -> {
+                URI targetUri = uri.apply(uriBuilder);
+                log.debug("HTTP GET -> ZSE Drive API: {}", targetUri);
+                return targetUri;
+            }).accept(MediaType.APPLICATION_JSON)
                     .header("language", "sk").header("Accept-Language", "sk")
                     .retrieve().body(type);
             if (result == null || !valid.test(result)) {
@@ -78,9 +86,11 @@ public final class ZseDriveClient implements CpoIngestionService<StationResponse
             }
             return result;
         } catch (RestClientResponseException exception) {
+            log.warn("ZSE API returned HTTP error {}: {}", exception.getStatusCode().value(), exception.getMessage());
             throw new ZseDriveException("ZSE API returned HTTP " + exception.getStatusCode().value(),
                     exception.getStatusCode().value(), exception);
         } catch (RestClientException exception) {
+            log.warn("Cannot read ZSE API response: {}", exception.getMessage());
             throw new ZseDriveException("Cannot read ZSE API response", null, exception);
         }
     }

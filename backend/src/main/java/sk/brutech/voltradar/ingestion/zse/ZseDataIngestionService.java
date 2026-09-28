@@ -91,6 +91,7 @@ public class ZseDataIngestionService {
                 .filter(Objects::nonNull)
                 .toList();
 
+        log.debug("Found {} stations in viewport query: {}", stationIds.size(), stationIds);
         return ingestStations(stationIds, gistDocument);
     }
 
@@ -154,9 +155,19 @@ public class ZseDataIngestionService {
             return null;
         }
         try {
+            log.debug("Fetching station detail for ID: {}", stationId);
             ZseDriveDtos.StationResponse response = zseClient.fetchStation(String.valueOf(stationId));
             if (response != null && response.station() != null) {
-                return ZseDtoMapper.toProviderStation(response.station());
+                ProviderStation station = ZseDtoMapper.toProviderStation(response.station());
+                log.debug(
+                        "Fetched & mapped station ID {} ('{}') with {} connectors (lat: {}, lon: {})",
+                        stationId,
+                        station.name(),
+                        station.connectors().size(),
+                        station.coordinates().latitude(),
+                        station.coordinates().longitude()
+                );
+                return station;
             }
         } catch (Exception ex) {
             log.warn("Error fetching station {}: {}", stationId, ex.getMessage());

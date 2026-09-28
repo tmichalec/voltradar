@@ -1,5 +1,7 @@
 package sk.brutech.voltradar.ingestion.zse;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import sk.brutech.voltradar.domain.model.Address;
 import sk.brutech.voltradar.domain.model.ChargerUnit;
 import sk.brutech.voltradar.domain.model.ChargingLocation;
@@ -30,6 +32,7 @@ import java.util.stream.Collectors;
  * Prioritizes verified community overrides before falling back to spatial heuristic clustering.
  */
 public final class ZseLocationAggregator {
+    private static final Logger log = LoggerFactory.getLogger(ZseLocationAggregator.class);
     private static final double MAX_CLUSTER_DISTANCE_METERS = 50.0;
 
     public List<ChargingLocation> aggregate(
@@ -43,6 +46,12 @@ public final class ZseLocationAggregator {
         List<LocationOverride> overrides = gistDocument != null && gistDocument.locations() != null
                 ? gistDocument.locations()
                 : List.of();
+
+        log.debug(
+                "Aggregating {} provider stations with {} Gist overrides",
+                stations.size(),
+                overrides.size()
+        );
 
         List<ChargingLocation> result = new ArrayList<>();
         Set<String> consumedStationIds = new HashSet<>();
