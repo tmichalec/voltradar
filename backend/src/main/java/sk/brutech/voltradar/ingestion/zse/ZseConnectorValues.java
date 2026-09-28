@@ -34,7 +34,7 @@ public final class ZseConnectorValues {
         // Numeric type IDs differ between the catalog and roaming station details.
         return switch (connector.type().name()) {
             case "CCS" -> Optional.of(ConnectorType.CCS);
-            case "Mennekes Type 2" -> Optional.of(ConnectorType.MENNEKES_TYPE_2);
+            case "Mennekes Type 2" -> Optional.of(ConnectorType.TYPE_2);
             default -> Optional.empty();
         };
     }
