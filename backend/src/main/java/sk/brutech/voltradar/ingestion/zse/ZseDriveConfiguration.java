@@ -26,4 +26,8 @@ public class ZseDriveConfiguration {
         return new ZseDriveClient(RestClient.builder().baseUrl(baseUrl.toString())
                 .requestFactory(requestFactory).build());
     }
+    @Bean
+    ZseLocationAggregator zseLocationAggregator() {
+        return new ZseLocationAggregator();
+    }
 }
