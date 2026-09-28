@@ -106,6 +106,12 @@ mvn clean spring-boot:run
 
 The backend starts at `http://localhost:8080`.
 
+### 3. API Documentation & Interactive Swagger UI
+
+When the backend starts, OpenAPI and Swagger UI URLs are automatically logged to the console:
+- **Interactive Swagger UI**: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
+- **OpenAPI v3 JSON Spec**: [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
+
 ---
 
 ## Project Structure

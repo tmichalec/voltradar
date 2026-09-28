@@ -12,7 +12,6 @@ spring:
       ddl-auto: update
     properties:
       hibernate:
-        dialect: org.hibernate.spatial.dialect.postgis.PostgisPG95Dialect
         format_sql: true
     show-sql: false
   data:
@@ -25,6 +24,14 @@ spring:
 
 server:
   port: 8080
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
 
 integrations:
   zse-drive:
