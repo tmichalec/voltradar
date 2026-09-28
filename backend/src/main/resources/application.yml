@@ -25,6 +25,12 @@ spring:
 server:
   port: 8080
 
+integrations:
+  zse-drive:
+    base-url: ${ZSE_DRIVE_BASE_URL:https://zsedrive.sk}
+    connect-timeout: 5s
+    read-timeout: 15s
+
 logging:
   level:
     sk.brutech.voltradar: DEBUG

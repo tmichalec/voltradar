@@ -110,6 +110,9 @@ The backend starts at `http://localhost:8080`.
 
 ## Project Structure
 
+The ZSE Drive client, observed JSON formats, nearby queries and synchronization constraints are documented in
+[ZSE Drive API investigation](docs/zse-drive-api.md).
+
 ```text
 voltradar/
 ├── .docker/                 # Docker Compose infrastructure & helper scripts
