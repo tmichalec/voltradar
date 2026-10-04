@@ -45,7 +45,6 @@ public class ZseDataRefreshScheduler {
      * Scheduled daily ingestion job (default: 03:00 AM every day).
      */
     @Scheduled(cron = "${scheduling.zse-refresh.cron:0 0 3 * * ?}")
-    @EventListener(ApplicationStartedEvent.class)
     public RefreshResult runDailyRefresh() {
         log.info("Starting scheduled daily ZSE Drive infrastructure and live status refresh...");
         return executeRefresh();

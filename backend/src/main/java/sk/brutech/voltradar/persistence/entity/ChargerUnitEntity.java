@@ -15,8 +15,8 @@ import sk.brutech.voltradar.domain.model.ConfidenceLevel;
 import sk.brutech.voltradar.domain.model.SharingStatus;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "charger_units")
@@ -47,7 +47,7 @@ public class ChargerUnitEntity {
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "charger_unit_evse_ids", joinColumns = @JoinColumn(name = "charger_unit_id"))
     @Column(name = "evse_id", length = 128)
-    private List<String> evseIds = new ArrayList<>();
+    private Set<String> evseIds = new LinkedHashSet<>();
 
     @Column(name = "verified_by")
     private String verifiedBy;
@@ -106,11 +106,11 @@ public class ChargerUnitEntity {
         this.totalPowerKw = totalPowerKw;
     }
 
-    public List<String> getEvseIds() {
+    public Set<String> getEvseIds() {
         return evseIds;
     }
 
-    public void setEvseIds(List<String> evseIds) {
+    public void setEvseIds(Set<String> evseIds) {
         this.evseIds = evseIds;
     }
 

@@ -64,7 +64,7 @@ public class ZseDataIngestionService {
      * Ingests and aggregates stations within the greater Bratislava region with optional Gist overrides.
      */
     public List<ChargingLocation> ingestBratislava(LocationsGistDocument gistDocument) {
-        return ingestViewport(BRATISLAVA_BOUNDS, 50, gistDocument);
+        return ingestViewport(BRATISLAVA_BOUNDS, 300, gistDocument);
     }
 
     /**

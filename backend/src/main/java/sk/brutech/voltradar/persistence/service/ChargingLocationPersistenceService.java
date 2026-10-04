@@ -14,8 +14,10 @@ import sk.brutech.voltradar.persistence.repository.ChargingLocationRepository;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -64,7 +66,7 @@ public class ChargingLocationPersistenceService {
         }
     }
 
-    private void updateProviderStations(ChargingLocationEntity existingLocation, List<ProviderStationEntity> incomingStations) {
+    private void updateProviderStations(ChargingLocationEntity existingLocation, Collection<ProviderStationEntity> incomingStations) {
         if (incomingStations == null || incomingStations.isEmpty()) {
             existingLocation.getProviderStations().clear();
             return;
@@ -106,7 +108,7 @@ public class ChargingLocationPersistenceService {
         }
     }
 
-    private void updateConnectors(ProviderStationEntity existingStation, List<ConnectorEntity> incomingConnectors) {
+    private void updateConnectors(ProviderStationEntity existingStation, Collection<ConnectorEntity> incomingConnectors) {
         if (incomingConnectors == null || incomingConnectors.isEmpty()) {
             existingStation.getConnectors().clear();
             return;
@@ -149,7 +151,7 @@ public class ChargingLocationPersistenceService {
         }
     }
 
-    private void updateChargerUnits(ChargingLocationEntity existingLocation, List<ChargerUnitEntity> incomingUnits) {
+    private void updateChargerUnits(ChargingLocationEntity existingLocation, Collection<ChargerUnitEntity> incomingUnits) {
         if (incomingUnits == null || incomingUnits.isEmpty()) {
             existingLocation.getChargerUnits().clear();
             return;
@@ -171,7 +173,7 @@ public class ChargingLocationPersistenceService {
                 existingUnit.setConfidence(incomingUnit.getConfidence());
                 existingUnit.setSharingStatus(incomingUnit.getSharingStatus());
                 existingUnit.setTotalPowerKw(incomingUnit.getTotalPowerKw());
-                existingUnit.setEvseIds(incomingUnit.getEvseIds() != null ? new ArrayList<>(incomingUnit.getEvseIds()) : new ArrayList<>());
+                existingUnit.setEvseIds(incomingUnit.getEvseIds() != null ? new LinkedHashSet<>(incomingUnit.getEvseIds()) : new LinkedHashSet<>());
                 existingUnit.setVerifiedBy(incomingUnit.getVerifiedBy());
                 existingUnit.setNotes(incomingUnit.getNotes());
             } else {

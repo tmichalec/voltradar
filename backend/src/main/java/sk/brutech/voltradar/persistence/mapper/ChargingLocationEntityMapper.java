@@ -15,6 +15,7 @@ import sk.brutech.voltradar.persistence.entity.ProviderStationEntity;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 
 public final class ChargingLocationEntityMapper {
@@ -102,7 +103,7 @@ public final class ChargingLocationEntityMapper {
         entity.setSharingStatus(domain.sharingStatus());
         entity.setTotalPowerKw(domain.totalPowerKw());
         if (domain.evseIds() != null) {
-            entity.setEvseIds(new ArrayList<>(domain.evseIds()));
+            entity.setEvseIds(new LinkedHashSet<>(domain.evseIds()));
         }
         entity.setVerifiedBy(domain.verifiedBy());
         entity.setNotes(domain.notes());
@@ -204,13 +205,17 @@ public final class ChargingLocationEntityMapper {
             return null;
         }
 
+        List<String> evseIds = entity.getEvseIds() != null
+                ? new ArrayList<>(entity.getEvseIds())
+                : List.of();
+
         return new ChargerUnit(
                 entity.getId(),
                 entity.getLabel(),
                 entity.getConfidence(),
                 entity.getSharingStatus(),
                 entity.getTotalPowerKw(),
-                entity.getEvseIds(),
+                evseIds,
                 entity.getVerifiedBy(),
                 entity.getNotes()
         );

@@ -152,20 +152,20 @@ class ChargingLocationPersistenceServiceTest {
 
         // Verify station preserved DB ID 10L and updated properties in place
         assertEquals(1, saved.getProviderStations().size());
-        ProviderStationEntity savedStation = saved.getProviderStations().getFirst();
+        ProviderStationEntity savedStation = saved.getProviderStations().iterator().next();
         assertEquals(10L, savedStation.getId());
         assertEquals("Updated Station Name", savedStation.getName());
 
         // Verify connector updated in place without duplicate entity instances
         assertEquals(1, savedStation.getConnectors().size());
-        ConnectorEntity savedConnector = savedStation.getConnectors().getFirst();
+        ConnectorEntity savedConnector = savedStation.getConnectors().iterator().next();
         assertEquals(connectorId, savedConnector.getId());
         assertEquals(new BigDecimal("150.00"), savedConnector.getMaxPowerKw());
         assertEquals(LiveStatus.OCCUPIED, savedConnector.getLastKnownStatus());
 
         // Verify charger unit updated in place
         assertEquals(1, saved.getChargerUnits().size());
-        ChargerUnitEntity savedUnit = saved.getChargerUnits().getFirst();
+        ChargerUnitEntity savedUnit = saved.getChargerUnits().iterator().next();
         assertEquals("unit-1", savedUnit.getId());
         assertEquals("Stand 1", savedUnit.getLabel());
         assertEquals(ConfidenceLevel.CONFIRMED, savedUnit.getConfidence());

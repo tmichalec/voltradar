@@ -106,7 +106,18 @@ mvn clean spring-boot:run
 
 The backend starts at `http://localhost:8080`.
 
-### 3. API Documentation & Interactive Swagger UI
+### 3. Build and Run Frontend (Web Map UI)
+
+**Via Terminal / npm:**
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The web application starts at `http://localhost:5173` with live Leaflet map visualization, power sharing stands breakdown, real-time connector statuses, and one-click navigation links.
+
+### 4. API Documentation & Interactive Swagger UI
 
 When the backend starts, OpenAPI and Swagger UI URLs are automatically logged to the console:
 - **Interactive Swagger UI**: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)

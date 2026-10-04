@@ -8,8 +8,8 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "charging_locations")
@@ -47,10 +47,10 @@ public class ChargingLocationEntity {
     private Instant updatedAt = Instant.now();
 
     @OneToMany(mappedBy = "chargingLocation", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ProviderStationEntity> providerStations = new ArrayList<>();
+    private Set<ProviderStationEntity> providerStations = new LinkedHashSet<>();
 
     @OneToMany(mappedBy = "chargingLocation", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ChargerUnitEntity> chargerUnits = new ArrayList<>();
+    private Set<ChargerUnitEntity> chargerUnits = new LinkedHashSet<>();
 
     public ChargingLocationEntity() {
     }
@@ -144,11 +144,11 @@ public class ChargingLocationEntity {
         this.updatedAt = updatedAt;
     }
 
-    public List<ProviderStationEntity> getProviderStations() {
+    public Set<ProviderStationEntity> getProviderStations() {
         return providerStations;
     }
 
-    public void setProviderStations(List<ProviderStationEntity> providerStations) {
+    public void setProviderStations(Set<ProviderStationEntity> providerStations) {
         this.providerStations = providerStations;
     }
 
@@ -162,11 +162,11 @@ public class ChargingLocationEntity {
         station.setChargingLocation(null);
     }
 
-    public List<ChargerUnitEntity> getChargerUnits() {
+    public Set<ChargerUnitEntity> getChargerUnits() {
         return chargerUnits;
     }
 
-    public void setChargerUnits(List<ChargerUnitEntity> chargerUnits) {
+    public void setChargerUnits(Set<ChargerUnitEntity> chargerUnits) {
         this.chargerUnits = chargerUnits;
     }
 

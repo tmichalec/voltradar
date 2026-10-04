@@ -15,8 +15,8 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import sk.brutech.voltradar.domain.model.CpoProvider;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "provider_stations")
@@ -65,7 +65,7 @@ public class ProviderStationEntity {
     private ChargingLocationEntity chargingLocation;
 
     @OneToMany(mappedBy = "providerStation", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ConnectorEntity> connectors = new ArrayList<>();
+    private Set<ConnectorEntity> connectors = new LinkedHashSet<>();
 
     public ProviderStationEntity() {
     }
@@ -174,11 +174,11 @@ public class ProviderStationEntity {
         this.chargingLocation = chargingLocation;
     }
 
-    public List<ConnectorEntity> getConnectors() {
+    public Set<ConnectorEntity> getConnectors() {
         return connectors;
     }
 
-    public void setConnectors(List<ConnectorEntity> connectors) {
+    public void setConnectors(Set<ConnectorEntity> connectors) {
         this.connectors = connectors;
     }
 

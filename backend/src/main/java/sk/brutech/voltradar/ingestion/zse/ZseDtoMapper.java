@@ -129,6 +129,12 @@ public final class ZseDtoMapper {
             NormalizedConnectorType type,
             BigDecimal powerKw
     ) {
+        if (type == NormalizedConnectorType.TYPE_2) {
+            return CurrentType.AC;
+        }
+        if (type == NormalizedConnectorType.CCS) {
+            return CurrentType.DC;
+        }
         if (connector.type() != null && connector.type().socketType() != null) {
             String socket = connector.type().socketType().strip();
             if (socket.equalsIgnoreCase("DC")) {
@@ -137,9 +143,6 @@ public final class ZseDtoMapper {
             if (socket.equalsIgnoreCase("AC")) {
                 return CurrentType.AC;
             }
-        }
-        if (type == NormalizedConnectorType.CCS) {
-            return CurrentType.DC;
         }
         return powerKw.compareTo(new BigDecimal("22")) > 0 ? CurrentType.DC : CurrentType.AC;
     }

@@ -80,7 +80,7 @@ class ChargingLocationEntityMapperTest {
         assertEquals(48.13, entity.getLatitude());
         assertEquals(1, entity.getProviderStations().size());
         assertEquals(1, entity.getChargerUnits().size());
-        assertEquals(1, entity.getProviderStations().getFirst().getConnectors().size());
+        assertEquals(1, entity.getProviderStations().iterator().next().getConnectors().size());
 
         ChargingLocation mappedBack = ChargingLocationEntityMapper.toDomain(entity);
         assertNotNull(mappedBack);
