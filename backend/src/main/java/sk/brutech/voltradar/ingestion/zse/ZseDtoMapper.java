@@ -44,9 +44,14 @@ public final class ZseDtoMapper {
         Address address = extractAddress(station.address());
 
         List<Connector> domainConnectors = new ArrayList<>();
+        java.util.Set<UUID> seenConnectorIds = new java.util.HashSet<>();
         if (station.connectors() != null) {
             for (ZseDriveDtos.Connector rawConnector : station.connectors()) {
-                mapConnector(station, rawConnector).ifPresent(domainConnectors::add);
+                mapConnector(station, rawConnector).ifPresent(c -> {
+                    if (seenConnectorIds.add(c.id())) {
+                        domainConnectors.add(c);
+                    }
+                });
             }
         }
 

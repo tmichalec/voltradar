@@ -8,7 +8,10 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
+import sk.brutech.voltradar.cache.ConnectorStatusCache;
 import sk.brutech.voltradar.ingestion.zse.ZseDataIngestionService;
+import sk.brutech.voltradar.persistence.service.ChargingLocationPersistenceService;
+import sk.brutech.voltradar.scheduler.ZseDataRefreshScheduler;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -22,6 +25,15 @@ class OpenApiDocumentationTest {
 
     @MockitoBean
     private ZseDataIngestionService zseDataIngestionService;
+
+    @MockitoBean
+    private ChargingLocationPersistenceService chargingLocationPersistenceService;
+
+    @MockitoBean
+    private ConnectorStatusCache connectorStatusCache;
+
+    @MockitoBean
+    private ZseDataRefreshScheduler zseDataRefreshScheduler;
 
     private MockMvc mockMvc;
 
@@ -39,6 +51,8 @@ class OpenApiDocumentationTest {
                 .andExpect(jsonPath("$.info.version").value("0.1.0-SNAPSHOT"))
                 .andExpect(jsonPath("$.paths['/api/v1/ingestion/zse/bratislava']").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/ingestion/zse/viewport']").exists())
-                .andExpect(jsonPath("$.paths['/api/v1/ingestion/zse/stations/{stationId}']").exists());
+                .andExpect(jsonPath("$.paths['/api/v1/ingestion/zse/stations/{stationId}']").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/ingestion/zse/refresh']").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/ingestion/zse/persisted']").exists());
     }
 }

@@ -7,11 +7,16 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import sk.brutech.voltradar.cache.ConnectorStatusCache;
 import sk.brutech.voltradar.domain.model.ChargingLocation;
 import sk.brutech.voltradar.domain.model.ProviderStation;
+import sk.brutech.voltradar.persistence.service.ChargingLocationPersistenceService;
+import sk.brutech.voltradar.scheduler.RefreshResult;
+import sk.brutech.voltradar.scheduler.ZseDataRefreshScheduler;
 
 import java.util.List;
 
@@ -23,9 +28,20 @@ import java.util.List;
 @Tag(name = "ZSE Ingestion", description = "Endpoints for fetching and aggregating ZSE Drive charging stations")
 public class ZseIngestionController {
     private final ZseDataIngestionService ingestionService;
+    private final ChargingLocationPersistenceService persistenceService;
+    private final ConnectorStatusCache statusCache;
+    private final ZseDataRefreshScheduler refreshScheduler;
 
-    public ZseIngestionController(ZseDataIngestionService ingestionService) {
+    public ZseIngestionController(
+            ZseDataIngestionService ingestionService,
+            ChargingLocationPersistenceService persistenceService,
+            ConnectorStatusCache statusCache,
+            ZseDataRefreshScheduler refreshScheduler
+    ) {
         this.ingestionService = ingestionService;
+        this.persistenceService = persistenceService;
+        this.statusCache = statusCache;
+        this.refreshScheduler = refreshScheduler;
     }
 
     /**
@@ -41,6 +57,35 @@ public class ZseIngestionController {
     public ResponseEntity<List<ChargingLocation>> getBratislavaLocations() {
         List<ChargingLocation> locations = ingestionService.ingestBratislava();
         return ResponseEntity.ok(locations);
+    }
+
+    /**
+     * Triggers full refresh pipeline (ZSE API -> PostgreSQL DB + Redis status cache).
+     */
+    @PostMapping("/refresh")
+    @Operation(
+            summary = "Trigger daily refresh",
+            description = "Fetches ZSE Drive stations, updates PostgreSQL database and synchronizes Redis live statuses."
+    )
+    @ApiResponse(responseCode = "200", description = "Refresh execution summary result")
+    public ResponseEntity<RefreshResult> triggerRefresh() {
+        RefreshResult result = refreshScheduler.executeRefresh();
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * Returns all persisted charging locations from the database, enriched with current live Redis status.
+     */
+    @GetMapping("/persisted")
+    @Operation(
+            summary = "Get persisted locations",
+            description = "Fetches all saved charging locations from PostgreSQL database and enriches connector states with live Redis statuses."
+    )
+    @ApiResponse(responseCode = "200", description = "List of persisted charging locations with live status")
+    public ResponseEntity<List<ChargingLocation>> getPersistedLocations() {
+        List<ChargingLocation> locations = persistenceService.findAll();
+        List<ChargingLocation> enriched = statusCache.enrichAllWithLiveStatus(locations);
+        return ResponseEntity.ok(enriched);
     }
 
     /**

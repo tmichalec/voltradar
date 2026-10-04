@@ -54,6 +54,19 @@ class ZseLocationAggregatorTest {
     }
 
     @Test
+    void deduplicatesDuplicateStationEntries() {
+        ProviderStation station1 = createStation("101", "ZSE Hub 1", 48.15000, 17.10000, "SK*ZSE*E101*1", 150);
+        ProviderStation station1Duplicate = createStation("101", "ZSE Hub 1 Duplicate", 48.15000, 17.10000, "SK*ZSE*E101*1", 150);
+
+        List<ChargingLocation> locations = aggregator.aggregate(List.of(station1, station1Duplicate), null);
+
+        assertThat(locations).hasSize(1);
+        ChargingLocation location = locations.getFirst();
+        assertThat(location.id()).isEqualTo("zse-101");
+        assertThat(location.providerStations()).hasSize(1);
+    }
+
+    @Test
     void appliesGistOverridesAndUpdatesPowerSharing() {
         ProviderStation stationA = createStationWithTwoConnectors(
                 "2145", "OC Retro 1", 48.1520, 17.1550, "SK*ZSE*E2145*1", "SK*ZSE*E2145*2", 150, LiveStatus.OCCUPIED

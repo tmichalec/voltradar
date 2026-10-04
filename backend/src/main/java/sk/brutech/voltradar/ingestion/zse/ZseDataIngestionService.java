@@ -12,6 +12,7 @@ import sk.brutech.voltradar.ingestion.zse.dto.ZseDriveDtos;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -89,9 +90,10 @@ public class ZseDataIngestionService {
         List<Long> stationIds = stationsResponse.list().stream()
                 .map(ZseDriveDtos.StationSummary::id)
                 .filter(Objects::nonNull)
+                .distinct()
                 .toList();
 
-        log.debug("Found {} stations in viewport query: {}", stationIds.size(), stationIds);
+        log.debug("Found {} unique stations in viewport query: {}", stationIds.size(), stationIds);
         return ingestStations(stationIds, gistDocument);
     }
 
@@ -103,16 +105,21 @@ public class ZseDataIngestionService {
             return List.of();
         }
 
+        List<Long> distinctStationIds = stationIds.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
         log.info(
                 "Fetching details for {} ZSE stations using Java Virtual Threads (concurrency limit: {})",
-                stationIds.size(),
+                distinctStationIds.size(),
                 concurrencyLimit
         );
-        List<ProviderStation> providerStations = new ArrayList<>();
+        Map<String, ProviderStation> uniqueStations = new java.util.LinkedHashMap<>();
         Semaphore semaphore = new Semaphore(concurrencyLimit);
 
         try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
-            List<CompletableFuture<ProviderStation>> futures = stationIds.stream()
+            List<CompletableFuture<ProviderStation>> futures = distinctStationIds.stream()
                     .map(id -> CompletableFuture.supplyAsync(() -> {
                         try {
                             semaphore.acquire();
@@ -133,7 +140,7 @@ public class ZseDataIngestionService {
                 try {
                     ProviderStation station = future.join();
                     if (station != null) {
-                        providerStations.add(station);
+                        uniqueStations.put(station.providerStationId(), station);
                     }
                 } catch (Exception ex) {
                     log.warn("Failed to retrieve or map station: {}", ex.getMessage());
@@ -141,7 +148,8 @@ public class ZseDataIngestionService {
             }
         }
 
-        log.info("Successfully fetched {} station details, aggregating into locations...", providerStations.size());
+        List<ProviderStation> providerStations = new ArrayList<>(uniqueStations.values());
+        log.info("Successfully fetched {} unique station details, aggregating into locations...", providerStations.size());
         List<ChargingLocation> locations = aggregator.aggregate(providerStations, gistDocument);
         log.info("Aggregated into {} unified ChargingLocations.", locations.size());
         return locations;

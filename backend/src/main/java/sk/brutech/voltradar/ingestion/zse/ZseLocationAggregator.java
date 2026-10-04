@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -56,11 +57,15 @@ public final class ZseLocationAggregator {
         List<ChargingLocation> result = new ArrayList<>();
         Set<String> consumedStationIds = new HashSet<>();
         Map<String, ProviderStation> stationById = stations.stream()
+                .filter(Objects::nonNull)
                 .collect(Collectors.toMap(ProviderStation::providerStationId, s -> s, (s1, s2) -> s1));
+
+        List<ProviderStation> distinctStations = new ArrayList<>(stationById.values());
 
         // 1. Process explicit Gist overrides
         for (LocationOverride override : overrides) {
             List<ProviderStation> matchedStations = override.providerStationIds().stream()
+                    .distinct()
                     .map(stationById::get)
                     .filter(s -> s != null && !consumedStationIds.contains(s.providerStationId()))
                     .toList();
@@ -72,7 +77,7 @@ public final class ZseLocationAggregator {
         }
 
         // 2. Process remaining stations using spatial clustering
-        List<ProviderStation> remaining = stations.stream()
+        List<ProviderStation> remaining = distinctStations.stream()
                 .filter(s -> !consumedStationIds.contains(s.providerStationId()))
                 .toList();
 

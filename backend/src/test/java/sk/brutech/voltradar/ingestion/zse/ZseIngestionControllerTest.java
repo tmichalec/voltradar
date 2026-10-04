@@ -5,28 +5,45 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import sk.brutech.voltradar.cache.ConnectorStatusCache;
 import sk.brutech.voltradar.domain.model.Address;
 import sk.brutech.voltradar.domain.model.ChargingLocation;
 import sk.brutech.voltradar.domain.model.CpoProvider;
 import sk.brutech.voltradar.domain.model.GeoCoordinates;
 import sk.brutech.voltradar.domain.model.ProviderStation;
+import sk.brutech.voltradar.persistence.service.ChargingLocationPersistenceService;
+import sk.brutech.voltradar.scheduler.RefreshResult;
+import sk.brutech.voltradar.scheduler.ZseDataRefreshScheduler;
 
+import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class ZseIngestionControllerTest {
     private MockMvc mockMvc;
     private ZseDataIngestionService ingestionService;
+    private ChargingLocationPersistenceService persistenceService;
+    private ConnectorStatusCache statusCache;
+    private ZseDataRefreshScheduler refreshScheduler;
 
     @BeforeEach
     void setUp() {
         ingestionService = Mockito.mock(ZseDataIngestionService.class);
-        ZseIngestionController controller = new ZseIngestionController(ingestionService);
+        persistenceService = Mockito.mock(ChargingLocationPersistenceService.class);
+        statusCache = Mockito.mock(ConnectorStatusCache.class);
+        refreshScheduler = Mockito.mock(ZseDataRefreshScheduler.class);
+        ZseIngestionController controller = new ZseIngestionController(
+                ingestionService,
+                persistenceService,
+                statusCache,
+                refreshScheduler
+        );
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
     }
 
@@ -67,5 +84,37 @@ class ZseIngestionControllerTest {
         mockMvc.perform(get("/api/v1/ingestion/zse/stations/459600"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("ZSE DriveX Jarovce"));
+    }
+
+    @Test
+    void triggersManualRefreshSuccessfully() throws Exception {
+        RefreshResult result = RefreshResult.success(Instant.now(), 150, 5, 5, 10);
+        when(refreshScheduler.executeRefresh()).thenReturn(result);
+
+        mockMvc.perform(post("/api/v1/ingestion/zse/refresh"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SUCCESS"))
+                .andExpect(jsonPath("$.locationsCount").value(5))
+                .andExpect(jsonPath("$.connectorsCount").value(10));
+    }
+
+    @Test
+    void returnsPersistedLocationsWithLiveStatus() throws Exception {
+        ChargingLocation location = new ChargingLocation(
+                "loc-ba-einsteinova",
+                "Bratislava - Einsteinova",
+                new GeoCoordinates(48.13, 17.11),
+                new Address("Einsteinova", "Bratislava", "85101", "SK"),
+                List.of(),
+                List.of(),
+                null
+        );
+
+        when(persistenceService.findAll()).thenReturn(List.of(location));
+        when(statusCache.enrichAllWithLiveStatus(anyList())).thenReturn(List.of(location));
+
+        mockMvc.perform(get("/api/v1/ingestion/zse/persisted"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].name").value("Bratislava - Einsteinova"));
     }
 }

@@ -9,11 +9,16 @@ spring:
   jpa:
     open-in-view: false
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     properties:
       hibernate:
         format_sql: true
     show-sql: false
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: '0'
+    locations: classpath:db/migration
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -39,6 +44,11 @@ integrations:
     connect-timeout: 5s
     read-timeout: 15s
     concurrency-limit: ${ZSE_DRIVE_CONCURRENCY_LIMIT:8}
+
+scheduling:
+  zse-refresh:
+    cron: ${ZSE_REFRESH_CRON:0 0 3 * * ?}
+    enabled: ${ZSE_REFRESH_ENABLED:true}
 
 logging:
   level:
