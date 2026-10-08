@@ -65,6 +65,12 @@ html, body, #root {
 }
 
 /* Custom Marker Pin Styles */
+.custom-leaflet-marker {
+  background: transparent !important;
+  border: none !important;
+  overflow: visible !important;
+}
+
 .custom-pin {
   display: flex;
   align-items: center;

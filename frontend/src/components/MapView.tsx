@@ -110,8 +110,9 @@ export const MapView: React.FC<MapViewProps> = ({
 
       const connectorStats = getConnectorTypeStats(allConnectors);
 
-      const plugBadges = connectorStats.map((s) => `${s.shortLabel}: ${s.availableCount}/${s.totalCount}`);
-      const plugLabel = plugBadges.join(' • ');
+      const plugBadgesHtml = connectorStats
+        .map((s) => `<span class="text-[9px] font-medium text-white/90 leading-tight tracking-tight whitespace-nowrap">${s.shortLabel}: ${s.availableCount}/${s.totalCount}</span>`)
+        .join('');
 
       const customHtml = `
         <div class="custom-pin relative flex flex-col items-center cursor-pointer transition-transform duration-200 ${selectedClass}">
@@ -121,7 +122,7 @@ export const MapView: React.FC<MapViewProps> = ({
               <span class="w-2 h-2 rounded-full ${statusDot} shadow-sm shrink-0"></span>
               <span>${maxPower > 0 ? `${maxPower} kW` : 'EV'}</span>
             </div>
-            ${plugLabel ? `<span class="text-[9px] font-medium text-white/90 leading-tight tracking-tight mt-0.5">${plugLabel}</span>` : ''}
+            ${plugBadgesHtml ? `<div class="flex flex-col items-center mt-0.5 space-y-0.5">${plugBadgesHtml}</div>` : ''}
           </div>
           <div class="w-2 h-2 bg-slate-900 rotate-45 -mt-1 border-r border-b border-white/20"></div>
         </div>
@@ -130,8 +131,8 @@ export const MapView: React.FC<MapViewProps> = ({
       const icon = L.divIcon({
         className: 'custom-leaflet-marker',
         html: customHtml,
-        iconSize: [72, 40],
-        iconAnchor: [36, 40],
+        iconSize: [80, 52],
+        iconAnchor: [40, 52],
       });
 
       const marker = L.marker([location.coordinates.latitude, location.coordinates.longitude], {
