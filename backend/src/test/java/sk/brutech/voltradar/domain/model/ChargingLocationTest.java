@@ -118,4 +118,56 @@ class ChargingLocationTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Longitude");
     }
+
+    @Test
+    @DisplayName("Connectors inside ProviderStation are stably sorted by EVSE ID naturally")
+    void testConnectorsStableSorting() {
+        Connector conn3 = new Connector(
+                UUID.randomUUID(),
+                "275437",
+                NormalizedConnectorType.TYPE_2,
+                CurrentType.AC,
+                new BigDecimal("22.0"),
+                LiveStatus.AVAILABLE,
+                PowerSharingInfo.unknown(new BigDecimal("22.0")),
+                new BigDecimal("0.49"),
+                Instant.now()
+        );
+        Connector conn1 = new Connector(
+                UUID.randomUUID(),
+                "275435",
+                NormalizedConnectorType.CCS,
+                CurrentType.DC,
+                new BigDecimal("150.0"),
+                LiveStatus.AVAILABLE,
+                PowerSharingInfo.unknown(new BigDecimal("150.0")),
+                new BigDecimal("0.69"),
+                Instant.now()
+        );
+        Connector conn2 = new Connector(
+                UUID.randomUUID(),
+                "275436",
+                NormalizedConnectorType.CCS,
+                CurrentType.DC,
+                new BigDecimal("150.0"),
+                LiveStatus.AVAILABLE,
+                PowerSharingInfo.unknown(new BigDecimal("150.0")),
+                new BigDecimal("0.69"),
+                Instant.now()
+        );
+
+        ProviderStation station = new ProviderStation(
+                "316067",
+                CpoProvider.ZSE_DRIVE,
+                "ZSE BA OC Retro Ultra 2",
+                new GeoCoordinates(48.152, 17.158),
+                new Address("Nevädzová 6", "Bratislava", "82101", "SK"),
+                "ULTRA",
+                List.of(conn3, conn1, conn2),
+                "{}"
+        );
+
+        assertThat(station.connectors()).extracting(Connector::evseId)
+                .containsExactly("275435", "275436", "275437");
+    }
 }

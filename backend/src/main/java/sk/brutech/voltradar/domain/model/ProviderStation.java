@@ -1,5 +1,6 @@
 package sk.brutech.voltradar.domain.model;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
@@ -20,6 +21,19 @@ public record ProviderStation(
         Objects.requireNonNull(providerStationId, "providerStationId must not be null");
         Objects.requireNonNull(provider, "provider must not be null");
         Objects.requireNonNull(name, "name must not be null");
-        connectors = connectors != null ? List.copyOf(connectors) : List.of();
+        connectors = connectors != null
+                ? connectors.stream()
+                        .sorted(Comparator.comparing(
+                                Connector::evseId,
+                                Comparator.nullsLast((a, b) -> {
+                                    try {
+                                        return Long.compare(Long.parseLong(a), Long.parseLong(b));
+                                    } catch (NumberFormatException e) {
+                                        return String.CASE_INSENSITIVE_ORDER.compare(a, b);
+                                    }
+                                }))
+                                .thenComparing(c -> c.id() != null ? c.id().toString() : ""))
+                        .toList()
+                : List.of();
     }
 }

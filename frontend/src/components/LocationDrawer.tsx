@@ -44,14 +44,21 @@ export const LocationDrawer: React.FC<LocationDrawerProps> = ({
   const [copiedEvse, setCopiedEvse] = useState<string | null>(null);
   const [showRawDetails, setShowRawDetails] = useState(false);
 
-  // Stable sorting of provider stations by name (natural numeric order) and ID
+  // Stable sorting of provider stations by name (natural numeric order) and ID, and connectors by EVSE
   const sortedStations = useMemo(() => {
     if (!location?.providerStations) return [];
-    return [...location.providerStations].sort(
-      (a, b) =>
-        (a.name || '').localeCompare(b.name || '', undefined, { numeric: true, sensitivity: 'base' }) ||
-        (a.providerStationId || '').localeCompare(b.providerStationId || '', undefined, { numeric: true })
-    );
+    return [...location.providerStations]
+      .map((station) => ({
+        ...station,
+        connectors: [...(station.connectors || [])].sort((a, b) =>
+          (a.evseId || '').localeCompare(b.evseId || '', undefined, { numeric: true, sensitivity: 'base' })
+        ),
+      }))
+      .sort(
+        (a, b) =>
+          (a.name || '').localeCompare(b.name || '', undefined, { numeric: true, sensitivity: 'base' }) ||
+          (a.providerStationId || '').localeCompare(b.providerStationId || '', undefined, { numeric: true })
+      );
   }, [location?.providerStations]);
 
   if (!location) return null;
