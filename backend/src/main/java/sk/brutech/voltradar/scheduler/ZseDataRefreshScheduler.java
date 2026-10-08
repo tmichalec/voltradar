@@ -13,6 +13,7 @@ import sk.brutech.voltradar.domain.model.ChargingLocation;
 import sk.brutech.voltradar.domain.model.Connector;
 import sk.brutech.voltradar.domain.model.LiveStatus;
 import sk.brutech.voltradar.ingestion.zse.ZseDataIngestionService;
+import sk.brutech.voltradar.ingestion.zse.ZseStationQuery;
 import sk.brutech.voltradar.persistence.service.ChargingLocationPersistenceService;
 
 import java.time.Instant;
@@ -142,6 +143,60 @@ public class ZseDataRefreshScheduler {
             log.error("Failed executing targeted refresh for {}: {}", targetName, ex.getMessage(), ex);
             return RefreshResult.failed(startTime, duration, ex.getMessage());
         }
+    }
+
+    /**
+     * Executes viewport refresh pipeline: fetches stations within GPS bounds from ZSE Drive API,
+     * ingests details, aggregates into locations, persists to DB and caches statuses in Redis.
+     */
+    public RefreshResult refreshViewport(ZseStationQuery.Bounds bounds, int limit) {
+        Instant startTime = Instant.now();
+        long startMillis = System.currentTimeMillis();
+
+        try {
+            int effectiveLimit = limit > 0 ? Math.min(limit, 500) : 100;
+            List<ChargingLocation> locations = ingestionService.ingestViewport(bounds, effectiveLimit, null);
+            return persistAndCacheLocations(locations, startTime, startMillis, "výrez mapy");
+        } catch (Exception ex) {
+            long duration = System.currentTimeMillis() - startMillis;
+            log.error("Failed executing viewport refresh: {}", ex.getMessage(), ex);
+            return RefreshResult.failed(startTime, duration, ex.getMessage());
+        }
+    }
+
+    /**
+     * Executes batch refresh for the specified list of location IDs and/or station IDs.
+     */
+    public RefreshResult refreshBatch(List<String> locationIds, List<Long> stationIds) {
+        List<Long> allStationIds = new java.util.ArrayList<>();
+        if (stationIds != null) {
+            allStationIds.addAll(stationIds);
+        }
+        if (locationIds != null && !locationIds.isEmpty()) {
+            for (String locationId : locationIds) {
+                java.util.Optional<ChargingLocation> locationOpt = persistenceService.findById(locationId);
+                if (locationOpt.isPresent()) {
+                    ChargingLocation location = locationOpt.get();
+                    if (location.providerStations() != null) {
+                        for (var st : location.providerStations()) {
+                            if (st.providerStationId() != null) {
+                                try {
+                                    allStationIds.add(Long.parseLong(st.providerStationId()));
+                                } catch (NumberFormatException ignored) {
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    allStationIds.addAll(parseStationIdsFromLocationId(locationId));
+                }
+            }
+        }
+        List<Long> uniqueStationIds = allStationIds.stream().distinct().toList();
+        if (uniqueStationIds.isEmpty()) {
+            return RefreshResult.failed(Instant.now(), 0, "No provider station IDs provided for batch refresh");
+        }
+        return refreshStationIds(uniqueStationIds, uniqueStationIds.size() + " staníc z mapy");
     }
 
     private RefreshResult persistAndCacheLocations(

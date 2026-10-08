@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import type { ChargingLocation } from '../types/charging';
 import {
   getStatusBadge,
@@ -60,6 +60,20 @@ export const LocationDrawer: React.FC<LocationDrawerProps> = ({
           (a.providerStationId || '').localeCompare(b.providerStationId || '', undefined, { numeric: true })
       );
   }, [location?.providerStations]);
+
+  // Close on Escape key press
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onClose]);
 
   if (!location) return null;
 

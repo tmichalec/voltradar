@@ -15,6 +15,7 @@ import sk.brutech.voltradar.domain.model.NormalizedConnectorType;
 import sk.brutech.voltradar.domain.model.PowerSharingInfo;
 import sk.brutech.voltradar.domain.model.ProviderStation;
 import sk.brutech.voltradar.ingestion.zse.ZseDataIngestionService;
+import sk.brutech.voltradar.ingestion.zse.ZseStationQuery;
 import sk.brutech.voltradar.persistence.service.ChargingLocationPersistenceService;
 
 import java.math.BigDecimal;
@@ -183,6 +184,106 @@ class ZseDataRefreshSchedulerTest {
         when(ingestionService.ingestStations(List.of(2145L), null)).thenReturn(List.of(location));
 
         RefreshResult result = scheduler.refreshLocation("zse-2145");
+
+        assertEquals("SUCCESS", result.status());
+        assertEquals(1, result.locationsCount());
+        assertEquals(1, result.providerStationsCount());
+        assertEquals(1, result.connectorsCount());
+
+        verify(persistenceService).saveAll(anyList());
+        verify(statusCache).updateAllStatuses(any());
+    }
+
+    @Test
+    void executesBatchRefreshSuccessfully() {
+        UUID connectorId = UUID.randomUUID();
+        Connector connector = new Connector(
+                connectorId,
+                "evse-2145",
+                NormalizedConnectorType.CCS,
+                CurrentType.DC,
+                BigDecimal.valueOf(150),
+                LiveStatus.AVAILABLE,
+                PowerSharingInfo.independent(new BigDecimal("150.0")),
+                BigDecimal.valueOf(0.69),
+                Instant.now()
+        );
+
+        ProviderStation station = new ProviderStation(
+                "2145",
+                CpoProvider.ZSE_DRIVE,
+                "Bratislava - Einsteinova",
+                new GeoCoordinates(48.13, 17.11),
+                new Address("Einsteinova 1", "Bratislava", "85101", "SK"),
+                "Ultra",
+                List.of(connector),
+                "{}"
+        );
+
+        ChargingLocation location = new ChargingLocation(
+                "zse-2145",
+                "Bratislava - Einsteinova",
+                new GeoCoordinates(48.13, 17.11),
+                new Address("Einsteinova 1", "Bratislava", "85101", "SK"),
+                List.of(station),
+                List.of(),
+                null
+        );
+
+        when(persistenceService.findById("zse-2145")).thenReturn(java.util.Optional.of(location));
+        when(ingestionService.ingestStations(List.of(2145L), null)).thenReturn(List.of(location));
+
+        RefreshResult result = scheduler.refreshBatch(List.of("zse-2145"), List.of(2145L));
+
+        assertEquals("SUCCESS", result.status());
+        assertEquals(1, result.locationsCount());
+        assertEquals(1, result.providerStationsCount());
+        assertEquals(1, result.connectorsCount());
+
+        verify(persistenceService).saveAll(anyList());
+        verify(statusCache).updateAllStatuses(any());
+    }
+
+    @Test
+    void executesViewportRefreshSuccessfully() {
+        ZseStationQuery.Bounds bounds = new ZseStationQuery.Bounds(48.25, 17.00, 48.05, 17.25);
+        UUID connectorId = UUID.randomUUID();
+        Connector connector = new Connector(
+                connectorId,
+                "evse-2145",
+                NormalizedConnectorType.CCS,
+                CurrentType.DC,
+                BigDecimal.valueOf(150),
+                LiveStatus.AVAILABLE,
+                PowerSharingInfo.independent(new BigDecimal("150.0")),
+                BigDecimal.valueOf(0.69),
+                Instant.now()
+        );
+
+        ProviderStation station = new ProviderStation(
+                "2145",
+                CpoProvider.ZSE_DRIVE,
+                "Bratislava - Einsteinova",
+                new GeoCoordinates(48.13, 17.11),
+                new Address("Einsteinova 1", "Bratislava", "85101", "SK"),
+                "Ultra",
+                List.of(connector),
+                "{}"
+        );
+
+        ChargingLocation location = new ChargingLocation(
+                "zse-2145",
+                "Bratislava - Einsteinova",
+                new GeoCoordinates(48.13, 17.11),
+                new Address("Einsteinova 1", "Bratislava", "85101", "SK"),
+                List.of(station),
+                List.of(),
+                null
+        );
+
+        when(ingestionService.ingestViewport(bounds, 100, null)).thenReturn(List.of(location));
+
+        RefreshResult result = scheduler.refreshViewport(bounds, 100);
 
         assertEquals("SUCCESS", result.status());
         assertEquals(1, result.locationsCount());

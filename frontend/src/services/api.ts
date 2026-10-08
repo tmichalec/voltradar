@@ -3,11 +3,26 @@ import type { ChargingLocation } from '../types/charging';
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 export interface RefreshResponse {
-  totalFetched: number;
-  totalPersisted: number;
+  executedAt?: string;
   durationMs: number;
-  success: boolean;
+  locationsCount: number;
+  providerStationsCount: number;
+  connectorsCount: number;
+  status: 'SUCCESS' | 'FAILED' | string;
   message?: string;
+}
+
+export interface BatchRefreshRequest {
+  locationIds?: string[];
+  stationIds?: number[];
+}
+
+export interface ViewportRefreshRequest {
+  north: number;
+  west: number;
+  south: number;
+  east: number;
+  limit?: number;
 }
 
 async function requestWithFallback(endpoint: string, options?: RequestInit): Promise<Response> {
@@ -85,6 +100,46 @@ export const api = {
 
     if (!response.ok) {
       throw new Error(`Chyba pri obnovovaní lokality Retro (HTTP ${response.status})`);
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Triggers batch refresh of multiple stations/locations (e.g. displayed on the map).
+   */
+  async triggerBatchRefresh(request: BatchRefreshRequest): Promise<RefreshResponse> {
+    const response = await requestWithFallback('/api/v1/ingestion/zse/refresh/batch', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Chyba pri synchronizácii staníc (HTTP ${response.status})`);
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Triggers refresh of stations located within a map viewport GPS bounding box.
+   */
+  async triggerViewportRefresh(request: ViewportRefreshRequest): Promise<RefreshResponse> {
+    const response = await requestWithFallback('/api/v1/ingestion/zse/refresh/viewport', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Chyba pri synchronizácii výrezu mapy (HTTP ${response.status})`);
     }
 
     return response.json();

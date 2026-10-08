@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import type { ChargingLocation, FilterState } from './types/charging';
 import { api } from './services/api';
 import { Navbar } from './components/Navbar';
@@ -14,9 +14,14 @@ import {
 export const App: React.FC = () => {
   const [locations, setLocations] = useState<ChargingLocation[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<ChargingLocation | null>(null);
+  const [currentBounds, setCurrentBounds] = useState<{
+    north: number;
+    south: number;
+    west: number;
+    east: number;
+  } | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
-  const [isRefreshingRetro, setIsRefreshingRetro] = useState<boolean>(false);
   const [isRefreshingLocation, setIsRefreshingLocation] = useState<boolean>(false);
   const [isClearing, setIsClearing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,56 +60,78 @@ export const App: React.FC = () => {
     loadLocations(true);
   }, []);
 
-  // Trigger manual refresh (restricted to OC Retro)
+  // Trigger refresh for stations currently in the visible map viewport
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      const res = await api.triggerRetroRefresh();
-      setNotification(`Lokalita OC Retro bola úspešne zaktualizovaná (${res.totalPersisted} lokalít)!`);
+      let res;
+      if (currentBounds) {
+        res = await api.triggerViewportRefresh({
+          north: currentBounds.north,
+          west: currentBounds.west,
+          south: currentBounds.south,
+          east: currentBounds.east,
+          limit: 100,
+        });
+      } else {
+        const locationIds = filteredLocations.map((l) => l.id);
+        const stationIds: number[] = [];
+        for (const loc of filteredLocations) {
+          if (loc.providerStations) {
+            for (const st of loc.providerStations) {
+              const numId = Number(st.providerStationId);
+              if (!isNaN(numId) && numId > 0 && !stationIds.includes(numId)) {
+                stationIds.push(numId);
+              }
+            }
+          }
+        }
+        res = await api.triggerBatchRefresh({ locationIds, stationIds });
+      }
+
+      const locationsCount = res.locationsCount ?? 0;
+      const stationsCount = res.providerStationsCount ?? 0;
+
+      if (locationsCount > 0) {
+        setNotification(
+          `Úspešne zosynchronizovaných ${locationsCount} lokalít vo výreze mapy (${stationsCount} staníc)!`
+        );
+      } else {
+        setNotification('Vo vybranom výreze mapy sa nenašli žiadne nabíjacie stanice.');
+      }
       const updated = await api.getPersistedLocations();
       setLocations(updated || []);
-      const retroLoc = updated?.find(
-        (l) =>
-          l.name?.toLowerCase().includes('retro') ||
-          l.providerStations?.some((s) => s.providerStationId === '79480' || s.providerStationId === '316067')
-      );
-      if (retroLoc) {
-        setSelectedLocation(retroLoc);
+
+      if (selectedLocation) {
+        const lat = selectedLocation.coordinates?.latitude;
+        const lon = selectedLocation.coordinates?.longitude;
+        const isInsideViewport =
+          !currentBounds ||
+          (typeof lat === 'number' &&
+            typeof lon === 'number' &&
+            lat <= currentBounds.north &&
+            lat >= currentBounds.south &&
+            lon >= currentBounds.west &&
+            lon <= currentBounds.east);
+
+        if (isInsideViewport) {
+          const refreshedSelected = updated?.find((l) => l.id === selectedLocation.id);
+          if (refreshedSelected) {
+            setSelectedLocation(refreshedSelected);
+          } else {
+            setSelectedLocation(null);
+          }
+        } else {
+          setSelectedLocation(null);
+        }
       }
       setTimeout(() => setNotification(null), 4000);
     } catch (err: any) {
       console.error('Refresh error:', err);
-      setNotification('Obnova lokality Retro zlyhala. Skontrolujte pripojenie k internetu a stav backendu.');
+      setNotification('Synchronizácia staníc z výrezu mapy zlyhala. Skontrolujte pripojenie k internetu.');
       setTimeout(() => setNotification(null), 5000);
     } finally {
       setIsRefreshing(false);
-    }
-  };
-
-  // Trigger targeted refresh for Retro
-  const handleRefreshRetro = async () => {
-    setIsRefreshingRetro(true);
-    try {
-      const res = await api.triggerRetroRefresh();
-      setNotification(`Lokalita OC Retro bola úspešne zaktualizovaná (${res.totalPersisted} lokalít)!`);
-      const updated = await api.getPersistedLocations();
-      setLocations(updated || []);
-      // If user is currently looking at Retro or wants to see Retro, update selected location
-      const retroLoc = updated?.find(
-        (l) =>
-          l.name?.toLowerCase().includes('retro') ||
-          l.providerStations?.some((s) => s.providerStationId === '79480' || s.providerStationId === '316067')
-      );
-      if (retroLoc) {
-        setSelectedLocation(retroLoc);
-      }
-      setTimeout(() => setNotification(null), 4000);
-    } catch (err: any) {
-      console.error('Retro refresh error:', err);
-      setNotification('Obnova lokality Retro zlyhala. Skontrolujte pripojenie.');
-      setTimeout(() => setNotification(null), 5000);
-    } finally {
-      setIsRefreshingRetro(false);
     }
   };
 
@@ -112,7 +139,7 @@ export const App: React.FC = () => {
   const handleRefreshLocation = async (locationId: string) => {
     setIsRefreshingLocation(true);
     try {
-      const res = await api.triggerLocationRefresh(locationId);
+      await api.triggerLocationRefresh(locationId);
       const updated = await api.getPersistedLocations();
       setLocations(updated || []);
       const refreshedLoc = updated?.find((l) => l.id === locationId);
@@ -120,7 +147,7 @@ export const App: React.FC = () => {
         setSelectedLocation(refreshedLoc);
         setNotification(`Lokalita "${refreshedLoc.name}" bola úspešne zaktualizovaná!`);
       } else {
-        setNotification(`Lokalita bola úspešne zaktualizovaná (${res.totalPersisted} lokalít)!`);
+        setNotification(`Lokalita bola úspešne zaktualizovaná!`);
       }
       setTimeout(() => setNotification(null), 4000);
     } catch (err: any) {
@@ -220,6 +247,10 @@ export const App: React.FC = () => {
     );
   }, [locations]);
 
+  const handleSelectLocation = useCallback((loc: ChargingLocation) => {
+    setSelectedLocation(loc);
+  }, []);
+
   return (
     <div className="flex flex-col h-screen w-screen bg-slate-950 text-slate-100 overflow-hidden font-sans select-none">
       {/* Top Navbar */}
@@ -229,8 +260,6 @@ export const App: React.FC = () => {
         totalConnectors={totalConnectors}
         onRefresh={handleRefresh}
         isRefreshing={isRefreshing}
-        onRefreshRetro={handleRefreshRetro}
-        isRefreshingRetro={isRefreshingRetro}
         onClearAll={handleClearAll}
         isClearing={isClearing}
         searchQuery={filters.searchQuery}
@@ -279,10 +308,10 @@ export const App: React.FC = () => {
 
         {/* Notification Toast */}
         {notification && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 max-w-md w-full px-4 animate-in fade-in slide-in-from-top-2">
-            <div className="bg-emerald-950/95 border border-emerald-500/60 backdrop-blur-md rounded-2xl px-4 py-3 shadow-2xl flex items-center gap-2.5 text-xs text-emerald-200">
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 w-max max-w-[calc(100vw-2rem)] px-4 animate-in fade-in slide-in-from-top-2 pointer-events-none">
+            <div className="bg-emerald-950/95 border border-emerald-500/60 backdrop-blur-md rounded-2xl px-5 py-2.5 shadow-2xl flex items-center gap-2.5 text-xs sm:text-sm text-emerald-200 pointer-events-auto">
               <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span className="font-medium text-white">{notification}</span>
+              <span className="font-medium text-white whitespace-nowrap">{notification}</span>
             </div>
           </div>
         )}
@@ -291,7 +320,8 @@ export const App: React.FC = () => {
         <MapView
           locations={filteredLocations}
           selectedLocation={selectedLocation}
-          onSelectLocation={(loc) => setSelectedLocation(loc)}
+          onSelectLocation={handleSelectLocation}
+          onBoundsChange={setCurrentBounds}
         />
 
         {/* Selected Location Detail Drawer */}

@@ -7,8 +7,6 @@ interface NavbarProps {
   totalConnectors: number;
   onRefresh: () => void;
   isRefreshing: boolean;
-  onRefreshRetro?: () => void;
-  isRefreshingRetro?: boolean;
   onClearAll?: () => void;
   isClearing?: boolean;
   searchQuery: string;
@@ -21,8 +19,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   totalConnectors,
   onRefresh,
   isRefreshing,
-  onRefreshRetro,
-  isRefreshingRetro = false,
   onClearAll,
   isClearing = false,
   searchQuery,
@@ -85,7 +81,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         {onClearAll && (
           <button
             onClick={onClearAll}
-            disabled={isRefreshing || isRefreshingRetro || isClearing}
+            disabled={isRefreshing || isClearing}
             title="Vymazať všetky dáta z databázy a Redis cache"
             className="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-rose-950/60 active:scale-95 text-rose-300 hover:text-rose-200 border border-rose-500/30 text-xs font-medium rounded-xl shadow-sm disabled:opacity-50 disabled:pointer-events-none transition-all cursor-pointer"
           >
@@ -94,15 +90,15 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
         )}
 
-        {/* Sync Button (Restricted to OC Retro) */}
+        {/* Sync Button (Stations displayed on the map) */}
         <button
-          onClick={onRefreshRetro || onRefresh}
-          disabled={isRefreshing || isRefreshingRetro}
-          title="Zosynchronizovať stanice v OC Retro (ZSE API -> PostgreSQL + Redis)"
-          className="flex items-center gap-2 px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white text-xs font-medium rounded-xl shadow-md shadow-emerald-950/50 disabled:opacity-50 disabled:pointer-events-none transition-all cursor-pointer"
+          onClick={onRefresh}
+          disabled={isRefreshing || isClearing}
+          title="Synchronizovať stanice zobrazené na mape (ZSE API -> PostgreSQL + Redis)"
+          className="flex items-center gap-2 px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white text-xs font-medium rounded-xl shadow-md shadow-emerald-950/50 disabled:opacity-50 disabled:pointer-events-none transition-all cursor-pointer whitespace-nowrap"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing || isRefreshingRetro ? 'animate-spin' : ''}`} />
-          <span>{isRefreshing || isRefreshingRetro ? 'Aktualizujem Retro...' : '⚡ Synchronizovať Retro'}</span>
+          <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+          <span>{isRefreshing ? 'Synchronizujem...' : '⚡ Synchronizovať stanice na mape'}</span>
         </button>
       </div>
     </header>

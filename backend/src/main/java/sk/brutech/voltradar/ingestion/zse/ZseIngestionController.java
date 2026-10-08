@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -101,6 +102,61 @@ public class ZseIngestionController {
             @PathVariable String locationId
     ) {
         RefreshResult result = refreshScheduler.refreshLocation(locationId);
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * Request payload for batch station/location refresh.
+     */
+    public record BatchRefreshRequest(List<String> locationIds, List<Long> stationIds) {
+    }
+
+    /**
+     * Request payload for viewport GPS bounding box refresh.
+     */
+    public record ViewportRefreshRequest(
+            Double north,
+            Double west,
+            Double south,
+            Double east,
+            Integer limit
+    ) {
+    }
+
+    /**
+     * Triggers viewport refresh (ZSE API -> PostgreSQL DB + Redis status cache) based on GPS bounding box.
+     */
+    @PostMapping("/refresh/viewport")
+    @Operation(
+            summary = "Trigger refresh by map viewport",
+            description = "Fetches ZSE Drive stations in a GPS bounding box, updates PostgreSQL database and synchronizes Redis live statuses."
+    )
+    @ApiResponse(responseCode = "200", description = "Refresh execution summary result")
+    public ResponseEntity<RefreshResult> triggerViewportRefresh(@RequestBody(required = false) ViewportRefreshRequest request) {
+        if (request == null || request.north() == null || request.west() == null || request.south() == null || request.east() == null) {
+            return ResponseEntity.badRequest().body(RefreshResult.failed(java.time.Instant.now(), 0, "Missing required GPS bounding box coordinates"));
+        }
+        ZseStationQuery.Bounds bounds = new ZseStationQuery.Bounds(request.north(), request.west(), request.south(), request.east());
+        int limit = request.limit() != null ? request.limit() : 100;
+        RefreshResult result = refreshScheduler.refreshViewport(bounds, limit);
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * Triggers batch refresh for specific locations or stations (ZSE API -> PostgreSQL DB + Redis status cache).
+     */
+    @PostMapping("/refresh/batch")
+    @Operation(
+            summary = "Trigger batch refresh for specific locations or stations",
+            description = "Fetches live ZSE Drive stations for given location or station IDs, updates PostgreSQL database and synchronizes Redis live statuses."
+    )
+    @ApiResponse(responseCode = "200", description = "Refresh execution summary result")
+    public ResponseEntity<RefreshResult> triggerBatchRefresh(@RequestBody(required = false) BatchRefreshRequest request) {
+        if (request == null || ((request.locationIds() == null || request.locationIds().isEmpty())
+                && (request.stationIds() == null || request.stationIds().isEmpty()))) {
+            return ResponseEntity.ok(refreshScheduler.executeRefresh());
+        }
+        RefreshResult result = refreshScheduler.refreshBatch(request.locationIds(), request.stationIds());
         return ResponseEntity.ok(result);
     }
 

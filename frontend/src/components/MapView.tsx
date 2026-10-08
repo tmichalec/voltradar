@@ -8,17 +8,30 @@ interface MapViewProps {
   locations: ChargingLocation[];
   selectedLocation: ChargingLocation | null;
   onSelectLocation: (location: ChargingLocation) => void;
+  onBoundsChange?: (bounds: { north: number; south: number; west: number; east: number }) => void;
 }
 
 export const MapView: React.FC<MapViewProps> = ({
   locations,
   selectedLocation,
   onSelectLocation,
+  onBoundsChange,
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
   const userMarkerRef = useRef<L.Marker | null>(null);
+  const onBoundsChangeRef = useRef(onBoundsChange);
+  const onSelectLocationRef = useRef(onSelectLocation);
+  const initialFitDoneRef = useRef(false);
+
+  useEffect(() => {
+    onBoundsChangeRef.current = onBoundsChange;
+  }, [onBoundsChange]);
+
+  useEffect(() => {
+    onSelectLocationRef.current = onSelectLocation;
+  }, [onSelectLocation]);
 
   // Initialize Map
   useEffect(() => {
@@ -42,19 +55,38 @@ export const MapView: React.FC<MapViewProps> = ({
     markersLayerRef.current = markersGroup;
     mapInstanceRef.current = map;
 
+    const notifyBounds = () => {
+      const b = map.getBounds();
+      if (b && b.isValid()) {
+        onBoundsChangeRef.current?.({
+          north: b.getNorth(),
+          south: b.getSouth(),
+          west: b.getWest(),
+          east: b.getEast(),
+        });
+      }
+    };
+
+    map.on('moveend', notifyBounds);
+    map.on('zoomend', notifyBounds);
+
     // Handle initial and resize layout invalidation
     const timer = setTimeout(() => {
       map.invalidateSize();
-    }, 100);
+      notifyBounds();
+    }, 150);
 
     const handleResize = () => {
       map.invalidateSize();
+      notifyBounds();
     };
     window.addEventListener('resize', handleResize);
 
     return () => {
       clearTimeout(timer);
       window.removeEventListener('resize', handleResize);
+      map.off('moveend', notifyBounds);
+      map.off('zoomend', notifyBounds);
       map.remove();
       mapInstanceRef.current = null;
     };
@@ -220,14 +252,16 @@ export const MapView: React.FC<MapViewProps> = ({
       );
 
       marker.on('click', () => {
-        onSelectLocation(location);
+        onSelectLocationRef.current?.(location);
       });
 
       markersGroup.addLayer(marker);
     });
 
-    // If locations exist and not selected, fit bounds or keep view
-    if (locations.length > 0 && !selectedLocation) {
+    // Auto-fit bounds only once on initial data load if no location is selected
+    if (locations.length === 0) {
+      initialFitDoneRef.current = false;
+    } else if (!initialFitDoneRef.current && !selectedLocation) {
       const validPoints = locations
         .filter(
           (loc) =>
@@ -240,13 +274,16 @@ export const MapView: React.FC<MapViewProps> = ({
       if (validPoints.length > 0) {
         const bounds = L.latLngBounds(validPoints);
         if (bounds.isValid()) {
+          initialFitDoneRef.current = true;
           map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
         }
       }
     }
-  }, [locations, selectedLocation, onSelectLocation]);
+  }, [locations, selectedLocation]);
 
   // Center on selected location
+  const prevSelectedLocationIdRef = useRef<string | null>(null);
+
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (
@@ -255,13 +292,17 @@ export const MapView: React.FC<MapViewProps> = ({
       typeof selectedLocation.coordinates.latitude !== 'number' ||
       typeof selectedLocation.coordinates.longitude !== 'number'
     ) {
+      prevSelectedLocationIdRef.current = selectedLocation?.id || null;
       return;
     }
 
-    map.flyTo([selectedLocation.coordinates.latitude, selectedLocation.coordinates.longitude], 16, {
-      duration: 1.2,
-      easeLinearity: 0.25,
-    });
+    if (prevSelectedLocationIdRef.current !== selectedLocation.id) {
+      prevSelectedLocationIdRef.current = selectedLocation.id;
+      map.flyTo([selectedLocation.coordinates.latitude, selectedLocation.coordinates.longitude], 16, {
+        duration: 1.2,
+        easeLinearity: 0.25,
+      });
+    }
   }, [selectedLocation]);
 
   // Geolocate user

@@ -123,6 +123,35 @@ class ZseIngestionControllerTest {
     }
 
     @Test
+    void triggersBatchRefreshSuccessfully() throws Exception {
+        RefreshResult result = RefreshResult.success(Instant.now(), 120, 2, 4, 8);
+        when(refreshScheduler.refreshBatch(List.of("zse-316067-79480"), List.of(79480L, 316067L))).thenReturn(result);
+
+        mockMvc.perform(post("/api/v1/ingestion/zse/refresh/batch")
+                        .contentType("application/json")
+                        .content("{\"locationIds\":[\"zse-316067-79480\"],\"stationIds\":[79480, 316067]}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SUCCESS"))
+                .andExpect(jsonPath("$.locationsCount").value(2))
+                .andExpect(jsonPath("$.connectorsCount").value(8));
+    }
+
+    @Test
+    void triggersViewportRefreshSuccessfully() throws Exception {
+        RefreshResult result = RefreshResult.success(Instant.now(), 180, 3, 6, 12);
+        when(refreshScheduler.refreshViewport(new ZseStationQuery.Bounds(48.25, 17.00, 48.05, 17.25), 100))
+                .thenReturn(result);
+
+        mockMvc.perform(post("/api/v1/ingestion/zse/refresh/viewport")
+                        .contentType("application/json")
+                        .content("{\"north\":48.25,\"west\":17.00,\"south\":48.05,\"east\":17.25,\"limit\":100}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SUCCESS"))
+                .andExpect(jsonPath("$.locationsCount").value(3))
+                .andExpect(jsonPath("$.connectorsCount").value(12));
+    }
+
+    @Test
     void returnsPersistedLocationsWithLiveStatus() throws Exception {
         ChargingLocation location = new ChargingLocation(
                 "loc-ba-einsteinova",
