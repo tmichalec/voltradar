@@ -80,7 +80,7 @@ class ZseDataRefreshSchedulerTest {
                 null
         );
 
-        when(ingestionService.ingestBratislava()).thenReturn(List.of(location));
+        when(ingestionService.ingestStations(ZseDataRefreshScheduler.RETRO_STATION_IDS, null)).thenReturn(List.of(location));
 
         RefreshResult result = scheduler.executeRefresh();
 
@@ -94,8 +94,58 @@ class ZseDataRefreshSchedulerTest {
     }
 
     @Test
+    void executesRetroRefreshSuccessfully() {
+        UUID connectorId = UUID.randomUUID();
+        Connector connector = new Connector(
+                connectorId,
+                "SK*ZSE*E79480*1",
+                NormalizedConnectorType.CCS,
+                CurrentType.DC,
+                new BigDecimal("150.0"),
+                LiveStatus.AVAILABLE,
+                PowerSharingInfo.independent(new BigDecimal("150.0")),
+                new BigDecimal("0.59"),
+                Instant.now()
+        );
+
+        ProviderStation station = new ProviderStation(
+                "79480",
+                CpoProvider.ZSE_DRIVE,
+                "Bratislava - OC Retro Ultra 1",
+                new GeoCoordinates(48.152, 17.155),
+                new Address("Nevädzová 6", "Bratislava", "82101", "SK"),
+                "Ultra",
+                List.of(connector),
+                "{}"
+        );
+
+        ChargingLocation location = new ChargingLocation(
+                "zse-79480",
+                "Bratislava - OC Retro Ultra",
+                new GeoCoordinates(48.152, 17.155),
+                new Address("Nevädzová 6", "Bratislava", "82101", "SK"),
+                List.of(station),
+                List.of(),
+                null
+        );
+
+        when(ingestionService.ingestStations(ZseDataRefreshScheduler.RETRO_STATION_IDS, null))
+                .thenReturn(List.of(location));
+
+        RefreshResult result = scheduler.refreshRetro();
+
+        assertEquals("SUCCESS", result.status());
+        assertEquals(1, result.locationsCount());
+        assertEquals(1, result.providerStationsCount());
+        assertEquals(1, result.connectorsCount());
+
+        verify(persistenceService).saveAll(anyList());
+        verify(statusCache).updateAllStatuses(any());
+    }
+
+    @Test
     void handlesEmptyIngestionGracefully() {
-        when(ingestionService.ingestBratislava()).thenReturn(List.of());
+        when(ingestionService.ingestStations(ZseDataRefreshScheduler.RETRO_STATION_IDS, null)).thenReturn(List.of());
 
         RefreshResult result = scheduler.executeRefresh();
 
@@ -105,7 +155,8 @@ class ZseDataRefreshSchedulerTest {
 
     @Test
     void handlesIngestionErrorGracefully() {
-        when(ingestionService.ingestBratislava()).thenThrow(new RuntimeException("API connection timeout"));
+        when(ingestionService.ingestStations(ZseDataRefreshScheduler.RETRO_STATION_IDS, null))
+                .thenThrow(new RuntimeException("API connection timeout"));
 
         RefreshResult result = scheduler.executeRefresh();
 

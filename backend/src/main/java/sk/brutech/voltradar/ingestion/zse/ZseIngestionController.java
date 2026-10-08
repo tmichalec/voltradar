@@ -45,17 +45,17 @@ public class ZseIngestionController {
     }
 
     /**
-     * Ingests and returns aggregated charging locations in the Bratislava area.
+     * Ingests and returns aggregated charging locations in the Bratislava area (restricted to OC Retro for focused testing).
      */
     @GetMapping("/bratislava")
     @Operation(
             summary = "Ingest Bratislava stations",
-            description = "Fetches live ZSE Drive stations in Bratislava bounds, parallelly loads details via "
+            description = "Fetches live ZSE Drive stations for OC Retro (IDs 79480, 316067), parallelly loads details via "
                     + "virtual threads, and aggregates them into physical locations."
     )
     @ApiResponse(responseCode = "200", description = "List of aggregated charging locations in Bratislava")
     public ResponseEntity<List<ChargingLocation>> getBratislavaLocations() {
-        List<ChargingLocation> locations = ingestionService.ingestBratislava();
+        List<ChargingLocation> locations = ingestionService.ingestStations(ZseDataRefreshScheduler.RETRO_STATION_IDS, null);
         return ResponseEntity.ok(locations);
     }
 
@@ -71,6 +71,35 @@ public class ZseIngestionController {
     public ResponseEntity<RefreshResult> triggerRefresh() {
         RefreshResult result = refreshScheduler.executeRefresh();
         return ResponseEntity.ok(result);
+    }
+
+    /**
+     * Triggers refresh for only OC Retro stations (ZSE API -> PostgreSQL DB + Redis status cache).
+     */
+    @PostMapping("/refresh/retro")
+    @Operation(
+            summary = "Trigger refresh for OC Retro",
+            description = "Fetches live ZSE Drive stations for OC Retro (IDs 79480, 316067), updates PostgreSQL database and synchronizes Redis live statuses."
+    )
+    @ApiResponse(responseCode = "200", description = "Refresh execution summary result")
+    public ResponseEntity<RefreshResult> triggerRetroRefresh() {
+        RefreshResult result = refreshScheduler.refreshRetro();
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * Clears all persisted charging locations from PostgreSQL database and removes cached statuses from Redis.
+     */
+    @PostMapping("/clear")
+    @Operation(
+            summary = "Clear all data",
+            description = "Deletes all charging locations and child entities from PostgreSQL database and clears Redis status cache."
+    )
+    @ApiResponse(responseCode = "200", description = "All data cleared successfully")
+    public ResponseEntity<Void> clearAllData() {
+        persistenceService.deleteAll();
+        statusCache.clearAll();
+        return ResponseEntity.ok().build();
     }
 
     /**

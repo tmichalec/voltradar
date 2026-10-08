@@ -222,4 +222,10 @@ class ChargingLocationPersistenceServiceTest {
         assertTrue(found.isPresent());
         assertEquals("Location 1", found.get().name());
     }
+
+    @Test
+    void deletesAllLocations() {
+        service.deleteAll();
+        verify(repository).deleteAll();
+    }
 }

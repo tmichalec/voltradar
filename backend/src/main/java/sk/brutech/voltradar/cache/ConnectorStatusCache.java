@@ -33,6 +33,19 @@ public class ConnectorStatusCache {
         this.redisTemplate = Objects.requireNonNull(redisTemplate, "redisTemplate must not be null");
     }
 
+    public void clearAll() {
+        try {
+            redisTemplate.delete(REDIS_HASH_KEY);
+            java.util.Set<String> keys = redisTemplate.keys(KEY_PREFIX + "*");
+            if (keys != null && !keys.isEmpty()) {
+                redisTemplate.delete(keys);
+            }
+            log.info("Cleared connector status cache in Redis");
+        } catch (Exception ex) {
+            log.warn("Failed to clear Redis cache: {}", ex.getMessage());
+        }
+    }
+
     public void updateStatus(String evseId, LiveStatus status) {
         if (evseId == null || status == null) {
             return;

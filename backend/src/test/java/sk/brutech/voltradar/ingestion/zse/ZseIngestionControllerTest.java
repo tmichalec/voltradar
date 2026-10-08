@@ -59,7 +59,7 @@ class ZseIngestionControllerTest {
                 null
         );
 
-        when(ingestionService.ingestBratislava()).thenReturn(List.of(location));
+        when(ingestionService.ingestStations(ZseDataRefreshScheduler.RETRO_STATION_IDS, null)).thenReturn(List.of(location));
 
         mockMvc.perform(get("/api/v1/ingestion/zse/bratislava"))
                 .andExpect(status().isOk())
@@ -99,6 +99,18 @@ class ZseIngestionControllerTest {
     }
 
     @Test
+    void triggersRetroRefreshSuccessfully() throws Exception {
+        RefreshResult result = RefreshResult.success(Instant.now(), 80, 1, 2, 4);
+        when(refreshScheduler.refreshRetro()).thenReturn(result);
+
+        mockMvc.perform(post("/api/v1/ingestion/zse/refresh/retro"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SUCCESS"))
+                .andExpect(jsonPath("$.locationsCount").value(1))
+                .andExpect(jsonPath("$.connectorsCount").value(4));
+    }
+
+    @Test
     void returnsPersistedLocationsWithLiveStatus() throws Exception {
         ChargingLocation location = new ChargingLocation(
                 "loc-ba-einsteinova",
@@ -116,5 +128,14 @@ class ZseIngestionControllerTest {
         mockMvc.perform(get("/api/v1/ingestion/zse/persisted"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].name").value("Bratislava - Einsteinova"));
+    }
+
+    @Test
+    void clearsAllDataSuccessfully() throws Exception {
+        mockMvc.perform(post("/api/v1/ingestion/zse/clear"))
+                .andExpect(status().isOk());
+
+        Mockito.verify(persistenceService).deleteAll();
+        Mockito.verify(statusCache).clearAll();
     }
 }

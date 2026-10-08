@@ -210,6 +210,12 @@ public class ChargingLocationPersistenceService {
         return saved;
     }
 
+    @Transactional
+    public void deleteAll() {
+        log.info("Deleting all charging locations from database");
+        locationRepository.deleteAll();
+    }
+
     @Transactional(readOnly = true)
     public Optional<ChargingLocation> findById(String id) {
         if (id == null) {

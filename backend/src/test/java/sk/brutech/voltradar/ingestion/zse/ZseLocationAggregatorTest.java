@@ -2,6 +2,7 @@ package sk.brutech.voltradar.ingestion.zse;
 
 import org.junit.jupiter.api.Test;
 import sk.brutech.voltradar.domain.model.Address;
+import sk.brutech.voltradar.domain.model.ChargerUnit;
 import sk.brutech.voltradar.domain.model.ChargingLocation;
 import sk.brutech.voltradar.domain.model.ConfidenceLevel;
 import sk.brutech.voltradar.domain.model.Connector;
@@ -42,6 +43,7 @@ class ZseLocationAggregatorTest {
                 .findFirst()
                 .orElseThrow();
         assertThat(clusterLocation.id()).isEqualTo("zse-101-102");
+        assertThat(clusterLocation.name()).isEqualTo("ZSE Hub");
         assertThat(clusterLocation.metadata().totalConnectorsCount()).isEqualTo(2);
         assertThat(clusterLocation.metadata().providerStationsCount()).isEqualTo(2);
 
@@ -117,6 +119,74 @@ class ZseLocationAggregatorTest {
         assertThat(conn2.powerSharing().confidence()).isEqualTo(ConfidenceLevel.CONFIRMED);
         assertThat(conn2.powerSharing().activeSessionsOnStand()).isEqualTo(1);
         assertThat(conn2.powerSharing().effectiveAvailablePowerKw()).isEqualByComparingTo("75.0");
+    }
+
+    @Test
+    void doesNotMixAcAndDcConnectorsInHeuristicClustering() {
+        Connector ccs1 = new Connector(
+                UUID.randomUUID(), "SK*ZSE*SHARED*1", NormalizedConnectorType.CCS, CurrentType.DC,
+                new BigDecimal("150"), LiveStatus.AVAILABLE, PowerSharingInfo.unknown(new BigDecimal("150")),
+                new BigDecimal("0.59"), Instant.now()
+        );
+        Connector ccs2 = new Connector(
+                UUID.randomUUID(), "SK*ZSE*SHARED*1", NormalizedConnectorType.CCS, CurrentType.DC,
+                new BigDecimal("150"), LiveStatus.AVAILABLE, PowerSharingInfo.unknown(new BigDecimal("150")),
+                new BigDecimal("0.59"), Instant.now()
+        );
+        Connector type2 = new Connector(
+                UUID.randomUUID(), "SK*ZSE*SHARED*1", NormalizedConnectorType.TYPE_2, CurrentType.AC,
+                new BigDecimal("22"), LiveStatus.OCCUPIED, PowerSharingInfo.unknown(new BigDecimal("22")),
+                new BigDecimal("0.49"), Instant.now()
+        );
+
+        ProviderStation station = new ProviderStation(
+                "301", CpoProvider.ZSE_DRIVE, "ZSE Mixed Hub",
+                new GeoCoordinates(48.15, 17.15), new Address("Street", "Bratislava", "82101", "SK"),
+                "Ultra", List.of(ccs1, ccs2, type2), "{}"
+        );
+
+        List<ChargingLocation> locations = aggregator.aggregate(List.of(station), null);
+        assertThat(locations).hasSize(1);
+        ChargingLocation loc = locations.getFirst();
+
+        // Should have 1 inferred stand for DC (CCS1 + CCS2), but Type 2 should not be mixed into DC stand
+        assertThat(loc.chargerUnits()).hasSize(1);
+        ChargerUnit dcStand = loc.chargerUnits().getFirst();
+        assertThat(dcStand.totalPowerKw()).isEqualByComparingTo("150");
+        assertThat(dcStand.label()).contains("DC");
+    }
+
+    @Test
+    void derivesCommonLocationNameByStrippingStandNoise() {
+        // User example: retro ultra 1 & retro ultra 2 -> retro ultra
+        assertThat(ZseLocationAggregator.deriveCommonLocationName(List.of(
+                "Bratislava - OC Retro Ultra 1",
+                "Bratislava - OC Retro Ultra 2"
+        ))).isEqualTo("Bratislava - OC Retro Ultra");
+
+        assertThat(ZseLocationAggregator.deriveCommonLocationName(List.of(
+                "Retro Ultra 1",
+                "Retro Ultra 2"
+        ))).isEqualTo("Retro Ultra");
+
+        assertThat(ZseLocationAggregator.deriveCommonLocationName(List.of(
+                "OC Retro 1",
+                "OC Retro 2"
+        ))).isEqualTo("OC Retro");
+
+        assertThat(ZseLocationAggregator.deriveCommonLocationName(List.of(
+                "Bratislava - Avion 1",
+                "Bratislava - Avion 2"
+        ))).isEqualTo("Bratislava - Avion");
+
+        assertThat(ZseLocationAggregator.deriveCommonLocationName(List.of(
+                "ZSE Hub A",
+                "ZSE Hub B"
+        ))).isEqualTo("ZSE Hub");
+
+        assertThat(ZseLocationAggregator.deriveCommonLocationName(List.of(
+                "Single Stand Location"
+        ))).isEqualTo("Single Stand Location");
     }
 
     private ProviderStation createStation(

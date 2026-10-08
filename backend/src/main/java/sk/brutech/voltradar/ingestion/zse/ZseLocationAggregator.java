@@ -7,6 +7,7 @@ import sk.brutech.voltradar.domain.model.ChargerUnit;
 import sk.brutech.voltradar.domain.model.ChargingLocation;
 import sk.brutech.voltradar.domain.model.ConfidenceLevel;
 import sk.brutech.voltradar.domain.model.Connector;
+import sk.brutech.voltradar.domain.model.CurrentType;
 import sk.brutech.voltradar.domain.model.GeoCoordinates;
 import sk.brutech.voltradar.domain.model.LiveStatus;
 import sk.brutech.voltradar.domain.model.PowerSharingInfo;
@@ -98,7 +99,9 @@ public final class ZseLocationAggregator {
 
         GeoCoordinates coordinates = computeCentroid(stations);
         Address address = primary.address();
-        String name = override.name() != null && !override.name().isBlank() ? override.name() : primary.name();
+        String name = override.name() != null && !override.name().isBlank()
+                ? override.name()
+                : deriveCommonLocationName(stations.stream().map(ProviderStation::name).toList());
 
         List<ChargerUnit> chargerUnits = new ArrayList<>();
         Map<String, ChargerUnitOverride> unitByEvseId = new HashMap<>();
@@ -188,34 +191,40 @@ public final class ZseLocationAggregator {
 
         GeoCoordinates coordinates = computeCentroid(cluster);
         Address address = primary.address();
-        String name = primary.name();
+        List<String> names = cluster.stream()
+                .map(ProviderStation::name)
+                .filter(Objects::nonNull)
+                .toList();
+        String name = deriveCommonLocationName(names);
 
         // Heuristically infer physical units (e.g. shared EVSE IDs)
-        Map<String, List<Connector>> byEvseId = cluster.stream()
+        // Group connectors by EVSE ID and CurrentType (AC vs DC) to ensure AC and DC are never mixed in stand power pools
+        Map<String, List<Connector>> byEvseAndType = cluster.stream()
                 .flatMap(s -> s.connectors().stream())
-                .collect(Collectors.groupingBy(Connector::evseId));
+                .collect(Collectors.groupingBy(c -> c.evseId() + ":" + c.currentType()));
 
         List<ChargerUnit> chargerUnits = new ArrayList<>();
-        for (Map.Entry<String, List<Connector>> entry : byEvseId.entrySet()) {
-            String evseId = entry.getKey();
+        for (Map.Entry<String, List<Connector>> entry : byEvseAndType.entrySet()) {
             List<Connector> evseConnectors = entry.getValue();
             if (evseConnectors.size() > 1) {
-                // Multiple plugs on same EVSE ID -> Shared stand
+                // Multiple plugs of same current type on same EVSE ID -> Shared stand
+                String evseId = evseConnectors.getFirst().evseId();
+                CurrentType currentType = evseConnectors.getFirst().currentType();
                 BigDecimal maxPower = evseConnectors.stream()
                         .map(Connector::maxPowerKw)
                         .max(BigDecimal::compareTo)
-                        .orElse(new BigDecimal("150"));
+                        .orElse(currentType == CurrentType.AC ? new BigDecimal("22") : new BigDecimal("150"));
 
-                String unitId = "stand-" + evseId.toLowerCase().replace('*', '-');
+                String unitId = "stand-" + evseId.toLowerCase().replace('*', '-') + "-" + currentType.name().toLowerCase();
                 chargerUnits.add(new ChargerUnit(
                         unitId,
-                        "Stand " + evseId,
+                        "Stand " + evseId + " (" + currentType + ")",
                         ConfidenceLevel.INFERRED,
                         SharingStatus.SHARED,
                         maxPower,
                         List.of(evseId),
                         "system:heuristic-evseid",
-                        "Shared EVSE detected"
+                        "Shared EVSE detected for " + currentType
                 ));
             }
         }
@@ -293,6 +302,7 @@ public final class ZseLocationAggregator {
         List<Connector> standConnectors = allStations.stream()
                 .flatMap(s -> s.connectors().stream())
                 .filter(c -> override.evseIds().contains(c.evseId()))
+                .filter(c -> c.currentType() == connector.currentType())
                 .toList();
 
         int activeSessions = (int) standConnectors.stream()
@@ -313,5 +323,88 @@ public final class ZseLocationAggregator {
                 effectivePower,
                 activeSessions
         );
+    }
+
+    /**
+     * Extracts a unified common location name from multiple station names in a cluster,
+     * removing individual stand identifiers (e.g. "Bratislava - OC Retro Ultra 1" & "Bratislava - OC Retro Ultra 2" -> "Bratislava - OC Retro Ultra").
+     */
+    public static String deriveCommonLocationName(List<String> names) {
+        if (names == null || names.isEmpty()) {
+            return "Unknown Location";
+        }
+        List<String> cleanNames = names.stream()
+                .filter(n -> n != null && !n.isBlank())
+                .map(String::strip)
+                .toList();
+        if (cleanNames.isEmpty()) {
+            return "Unknown Location";
+        }
+        if (cleanNames.size() == 1) {
+            return cleanNames.getFirst();
+        }
+
+        String first = cleanNames.getFirst();
+        int minLen = cleanNames.stream().mapToInt(String::length).min().orElse(0);
+        int commonLen = 0;
+        for (int i = 0; i < minLen; i++) {
+            char c = Character.toLowerCase(first.charAt(i));
+            boolean allMatch = true;
+            for (int k = 1; k < cleanNames.size(); k++) {
+                if (Character.toLowerCase(cleanNames.get(k).charAt(i)) != c) {
+                    allMatch = false;
+                    break;
+                }
+            }
+            if (!allMatch) {
+                break;
+            }
+            commonLen++;
+        }
+
+        String rawPrefix = first.substring(0, commonLen);
+        String cleaned = cleanTrailingNoise(rawPrefix);
+
+        if (cleaned.length() >= 3 && !isTooGenericPrefix(cleaned)) {
+            return cleaned;
+        }
+
+        if (!cleaned.isBlank() && !isTooGenericPrefix(cleaned)) {
+            return cleaned;
+        }
+
+        return cleanNames.getFirst();
+    }
+
+    private static String cleanTrailingNoise(String str) {
+        if (str == null) {
+            return "";
+        }
+        String s = str.strip();
+        boolean changed = true;
+        while (changed) {
+            String before = s;
+            // Strip trailing punctuation / delimiters / whitespace
+            s = s.replaceAll("[\\s\\-_/:,#\\.]+$", "").strip();
+            // Strip trailing stand/station numbers or letters such as " 1", " 2", " A", " B", " #1", " stojan 1", " stand 1"
+            s = s.replaceAll("(?i)\\s+(?:#|no\\.?|st\\.?|stojan\\s+|stand\\s+)?(?:\\d+|[a-z])$", "").strip();
+            // Also strip trailing punctuation again
+            s = s.replaceAll("[\\s\\-_/:,#\\.]+$", "").strip();
+            changed = !s.equals(before);
+        }
+        return s;
+    }
+
+    private static boolean isTooGenericPrefix(String prefix) {
+        String lower = prefix.toLowerCase().strip();
+        return lower.equals("zse")
+                || lower.equals("zse drive")
+                || lower.equals("bratislava")
+                || lower.equals("košice")
+                || lower.equals("trnava")
+                || lower.equals("žilina")
+                || lower.equals("nitra")
+                || lower.equals("banská bystrica")
+                || lower.equals("prešov");
     }
 }

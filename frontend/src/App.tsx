@@ -16,6 +16,8 @@ export const App: React.FC = () => {
   const [selectedLocation, setSelectedLocation] = useState<ChargingLocation | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [isRefreshingRetro, setIsRefreshingRetro] = useState<boolean>(false);
+  const [isClearing, setIsClearing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
 
@@ -52,20 +54,77 @@ export const App: React.FC = () => {
     loadLocations(true);
   }, []);
 
-  // Trigger manual refresh
+  // Trigger manual refresh (restricted to OC Retro)
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      const res = await api.triggerRefresh();
-      setNotification(`Úspešne aktualizovaných ${res.totalPersisted} lokalít zo ZSE API!`);
-      await loadLocations(false);
+      const res = await api.triggerRetroRefresh();
+      setNotification(`Lokalita OC Retro bola úspešne zaktualizovaná (${res.totalPersisted} lokalít)!`);
+      const updated = await api.getPersistedLocations();
+      setLocations(updated || []);
+      const retroLoc = updated?.find(
+        (l) =>
+          l.name?.toLowerCase().includes('retro') ||
+          l.providerStations?.some((s) => s.providerStationId === '79480' || s.providerStationId === '316067')
+      );
+      if (retroLoc) {
+        setSelectedLocation(retroLoc);
+      }
       setTimeout(() => setNotification(null), 4000);
     } catch (err: any) {
       console.error('Refresh error:', err);
-      setNotification('Obnova dát zlyhala. Skontrolujte pripojenie k internetu a stav backendu.');
+      setNotification('Obnova lokality Retro zlyhala. Skontrolujte pripojenie k internetu a stav backendu.');
       setTimeout(() => setNotification(null), 5000);
     } finally {
       setIsRefreshing(false);
+    }
+  };
+
+  // Trigger targeted refresh for Retro
+  const handleRefreshRetro = async () => {
+    setIsRefreshingRetro(true);
+    try {
+      const res = await api.triggerRetroRefresh();
+      setNotification(`Lokalita OC Retro bola úspešne zaktualizovaná (${res.totalPersisted} lokalít)!`);
+      const updated = await api.getPersistedLocations();
+      setLocations(updated || []);
+      // If user is currently looking at Retro or wants to see Retro, update selected location
+      const retroLoc = updated?.find(
+        (l) =>
+          l.name?.toLowerCase().includes('retro') ||
+          l.providerStations?.some((s) => s.providerStationId === '79480' || s.providerStationId === '316067')
+      );
+      if (retroLoc) {
+        setSelectedLocation(retroLoc);
+      }
+      setTimeout(() => setNotification(null), 4000);
+    } catch (err: any) {
+      console.error('Retro refresh error:', err);
+      setNotification('Obnova lokality Retro zlyhala. Skontrolujte pripojenie.');
+      setTimeout(() => setNotification(null), 5000);
+    } finally {
+      setIsRefreshingRetro(false);
+    }
+  };
+
+  // Clear all data from DB and cache
+  const handleClearAll = async () => {
+    if (!window.confirm('Naozaj chcete vymazať všetky uložené dáta z databázy aj cache?')) {
+      return;
+    }
+    setIsClearing(true);
+    try {
+      await api.clearAllData();
+      setLocations([]);
+      setSelectedLocation(null);
+      setNotification('Všetky dáta boli úspešne vymazané z databázy aj cache.');
+      setTimeout(() => setNotification(null), 4000);
+    } catch (err: any) {
+      console.error('Clear error:', err);
+      setNotification('Mazanie dát zlyhalo. Skontrolujte pripojenie k backendu.');
+      setTimeout(() => setNotification(null), 5000);
+    } finally {
+      setIsClearing(false);
     }
   };
 
@@ -145,6 +204,10 @@ export const App: React.FC = () => {
         totalConnectors={totalConnectors}
         onRefresh={handleRefresh}
         isRefreshing={isRefreshing}
+        onRefreshRetro={handleRefreshRetro}
+        isRefreshingRetro={isRefreshingRetro}
+        onClearAll={handleClearAll}
+        isClearing={isClearing}
         searchQuery={filters.searchQuery}
         onSearchChange={(query) => setFilters({ ...filters, searchQuery: query })}
       />
@@ -210,6 +273,8 @@ export const App: React.FC = () => {
         <LocationDrawer
           location={selectedLocation}
           onClose={() => setSelectedLocation(null)}
+          onRefreshRetro={handleRefreshRetro}
+          isRefreshingRetro={isRefreshingRetro}
         />
       </main>
     </div>

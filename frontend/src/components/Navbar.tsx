@@ -1,5 +1,5 @@
 import React from 'react';
-import { Zap, RefreshCw, Search, Database } from 'lucide-react';
+import { Zap, RefreshCw, Search, Database, Trash2 } from 'lucide-react';
 
 interface NavbarProps {
   totalLocations: number;
@@ -7,6 +7,10 @@ interface NavbarProps {
   totalConnectors: number;
   onRefresh: () => void;
   isRefreshing: boolean;
+  onRefreshRetro?: () => void;
+  isRefreshingRetro?: boolean;
+  onClearAll?: () => void;
+  isClearing?: boolean;
   searchQuery: string;
   onSearchChange: (query: string) => void;
 }
@@ -17,6 +21,10 @@ export const Navbar: React.FC<NavbarProps> = ({
   totalConnectors,
   onRefresh,
   isRefreshing,
+  onRefreshRetro,
+  isRefreshingRetro = false,
+  onClearAll,
+  isClearing = false,
   searchQuery,
   onSearchChange,
 }) => {
@@ -73,15 +81,28 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
 
-        {/* Refresh Button */}
+        {/* Clear All Button */}
+        {onClearAll && (
+          <button
+            onClick={onClearAll}
+            disabled={isRefreshing || isRefreshingRetro || isClearing}
+            title="Vymazať všetky dáta z databázy a Redis cache"
+            className="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-rose-950/60 active:scale-95 text-rose-300 hover:text-rose-200 border border-rose-500/30 text-xs font-medium rounded-xl shadow-sm disabled:opacity-50 disabled:pointer-events-none transition-all cursor-pointer"
+          >
+            <Trash2 className={`w-3.5 h-3.5 text-rose-400 ${isClearing ? 'animate-pulse' : ''}`} />
+            <span>{isClearing ? 'Mazanie...' : 'Vymazať dáta'}</span>
+          </button>
+        )}
+
+        {/* Sync Button (Restricted to OC Retro) */}
         <button
-          onClick={onRefresh}
-          disabled={isRefreshing}
-          title="Zosynchronizovať živé stavy z CPO API a Redis cache"
+          onClick={onRefreshRetro || onRefresh}
+          disabled={isRefreshing || isRefreshingRetro}
+          title="Zosynchronizovať stanice v OC Retro (ZSE API -> PostgreSQL + Redis)"
           className="flex items-center gap-2 px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white text-xs font-medium rounded-xl shadow-md shadow-emerald-950/50 disabled:opacity-50 disabled:pointer-events-none transition-all cursor-pointer"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-          <span>{isRefreshing ? 'Aktualizujem...' : 'Obnoviť dáta'}</span>
+          <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing || isRefreshingRetro ? 'animate-spin' : ''}`} />
+          <span>{isRefreshing || isRefreshingRetro ? 'Aktualizujem Retro...' : '⚡ Synchronizovať Retro'}</span>
         </button>
       </div>
     </header>

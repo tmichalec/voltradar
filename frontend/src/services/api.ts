@@ -73,6 +73,40 @@ export const api = {
   },
 
   /**
+   * Triggers a targeted refresh of only the OC Retro location (stations 79480, 316067).
+   */
+  async triggerRetroRefresh(): Promise<RefreshResponse> {
+    const response = await requestWithFallback('/api/v1/ingestion/zse/refresh/retro', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Chyba pri obnovovaní lokality Retro (HTTP ${response.status})`);
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Clears all persisted data from database and cache.
+   */
+  async clearAllData(): Promise<void> {
+    const response = await requestWithFallback('/api/v1/ingestion/zse/clear', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Chyba pri mazaní dát (HTTP ${response.status})`);
+    }
+  },
+
+  /**
    * Direct ingest for Bratislava region as fallback or quick load.
    */
   async getBratislavaLive(): Promise<ChargingLocation[]> {

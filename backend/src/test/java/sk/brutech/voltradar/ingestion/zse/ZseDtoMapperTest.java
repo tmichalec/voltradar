@@ -49,6 +49,39 @@ class ZseDtoMapperTest {
         ProviderStation providerStation = ZseDtoMapper.toProviderStation(response.station());
 
         assertThat(providerStation.providerStationId()).isEqualTo("283373");
-        assertThat(providerStation.connectors()).isNotEmpty();
+        assertThat(providerStation.connectors()).hasSize(2);
+
+        var type2 = providerStation.connectors().stream()
+                .filter(c -> c.type() == NormalizedConnectorType.TYPE_2)
+                .findFirst()
+                .orElseThrow();
+        assertThat(type2.currentType()).isEqualTo(CurrentType.AC);
+        assertThat(type2.maxPowerKw()).isEqualByComparingTo("22");
+
+        var ccs = providerStation.connectors().stream()
+                .filter(c -> c.type() == NormalizedConnectorType.CCS)
+                .findFirst()
+                .orElseThrow();
+        assertThat(ccs.currentType()).isEqualTo(CurrentType.DC);
+        assertThat(ccs.maxPowerKw()).isEqualByComparingTo("50");
+    }
+
+    @Test
+    void type2ConnectorDoesNotInheritUltraStationPower() {
+        ZseDriveDtos.Connector rawType2 = new ZseDriveDtos.Connector(
+                1L,
+                "1001",
+                "AVAILABLE",
+                new ZseDriveDtos.ConnectorType(2L, "Mennekes Type 2", null, "DC"), // even if API incorrectly says DC
+                null, // no pricing
+                null,
+                false
+        );
+
+        BigDecimal maxPower = ZseDtoMapper.resolveMaxPower(rawType2, NormalizedConnectorType.TYPE_2, "Ultra");
+        assertThat(maxPower).isEqualByComparingTo("22");
+
+        CurrentType currentType = ZseDtoMapper.resolveCurrentType(rawType2, NormalizedConnectorType.TYPE_2, maxPower);
+        assertThat(currentType).isEqualTo(CurrentType.AC);
     }
 }

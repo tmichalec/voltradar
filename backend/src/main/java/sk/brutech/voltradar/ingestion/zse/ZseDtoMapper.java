@@ -80,7 +80,7 @@ public final class ZseDtoMapper {
             return Optional.empty();
         }
 
-        BigDecimal maxPower = resolveMaxPower(rawConnector, station.exeStationType());
+        BigDecimal maxPower = resolveMaxPower(rawConnector, normalizedType.get(), station.exeStationType());
         CurrentType currentType = resolveCurrentType(rawConnector, normalizedType.get(), maxPower);
         LiveStatus liveStatus = resolveLiveStatus(rawConnector.state());
         BigDecimal pricePerKwh = resolvePricePerKwh(rawConnector);
@@ -147,7 +147,11 @@ public final class ZseDtoMapper {
         return powerKw.compareTo(new BigDecimal("22")) > 0 ? CurrentType.DC : CurrentType.AC;
     }
 
-    public static BigDecimal resolveMaxPower(ZseDriveDtos.Connector connector, String exeStationType) {
+    public static BigDecimal resolveMaxPower(
+            ZseDriveDtos.Connector connector,
+            NormalizedConnectorType normalizedType,
+            String exeStationType
+    ) {
         if (connector.pricing() != null) {
             for (ZseDriveDtos.PriceLine line : connector.pricing()) {
                 if (line.name() != null && (line.name().equalsIgnoreCase("Výkon")
@@ -155,11 +159,20 @@ public final class ZseDtoMapper {
                     if (line.value() != null) {
                         Matcher matcher = POWER_PATTERN.matcher(line.value());
                         if (matcher.matches()) {
-                            return new BigDecimal(matcher.group(1).replace(',', '.'));
+                            BigDecimal parsedPower = new BigDecimal(matcher.group(1).replace(',', '.'));
+                            // If Type 2 AC connector, parsed power cannot physically exceed standard AC limits (43 kW max)
+                            if (normalizedType == NormalizedConnectorType.TYPE_2 && parsedPower.compareTo(new BigDecimal("43")) > 0) {
+                                return new BigDecimal("22");
+                            }
+                            return parsedPower;
                         }
                     }
                 }
             }
+        }
+        // If Type 2 Mennekes (AC), never inherit DC station tier powers (150kW/50kW); default strictly to 22 kW AC
+        if (normalizedType == NormalizedConnectorType.TYPE_2) {
+            return new BigDecimal("22");
         }
         if (exeStationType != null) {
             if (exeStationType.equalsIgnoreCase("DriveX") || exeStationType.equalsIgnoreCase("Ultra")) {
@@ -169,7 +182,12 @@ public final class ZseDtoMapper {
                 return new BigDecimal("50");
             }
         }
-        return new BigDecimal("22");
+        return new BigDecimal("50");
+    }
+
+    public static BigDecimal resolveMaxPower(ZseDriveDtos.Connector connector, String exeStationType) {
+        Optional<NormalizedConnectorType> type = resolveConnectorType(connector);
+        return resolveMaxPower(connector, type.orElse(NormalizedConnectorType.CCS), exeStationType);
     }
 
     public static BigDecimal resolvePricePerKwh(ZseDriveDtos.Connector connector) {
