@@ -8,7 +8,6 @@ import {
   getGoogleMapsUrl,
   getWazeUrl,
   formatRelativeTime,
-  formatStandFreeParking,
 } from '../utils/formatters';
 import {
   X,
@@ -233,6 +232,18 @@ export const LocationDrawer: React.FC<LocationDrawerProps> = ({
                       </div>
                     </div>
                   </div>
+
+                  {stat.freeParkingMinutes != null && (
+                    <div className="mt-2 pt-1.5 border-t border-slate-800/60 flex items-center justify-between text-[11px]">
+                      <span className="text-slate-400 flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-emerald-400 shrink-0" />
+                        Bezplatné parkovanie:
+                      </span>
+                      <span className="font-semibold text-emerald-300 font-mono">
+                        {stat.freeParkingMinutes} min
+                      </span>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -331,7 +342,6 @@ export const LocationDrawer: React.FC<LocationDrawerProps> = ({
               const stationAvailable = stationConnectors.filter((c) => c.liveStatus === 'AVAILABLE').length;
               const stationMaxPower = getMaxLocationPower(stationConnectors);
               const stationStats = getConnectorTypeStats(stationConnectors);
-              const freeParkingLabel = formatStandFreeParking(stationConnectors);
 
               // Check if any charger unit matches this station
               const matchingUnit = location.chargerUnits?.find((u) =>
@@ -372,14 +382,6 @@ export const LocationDrawer: React.FC<LocationDrawerProps> = ({
                     </div>
                   </div>
 
-                  {/* Free parking information for stand */}
-                  {freeParkingLabel && (
-                    <div className="flex items-center gap-2 text-xs bg-emerald-950/30 border border-emerald-800/40 rounded-lg px-2.5 py-1.5 text-emerald-300">
-                      <Clock className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                      <span>Bezplatné parkovanie: <strong className="font-semibold text-emerald-200">{freeParkingLabel}</strong></span>
-                    </div>
-                  )}
-
                   {/* Power sharing note for stand if present */}
                   {matchingUnit && (
                     <div className="flex items-center gap-2 text-xs bg-purple-950/30 border border-purple-800/40 rounded-lg px-2.5 py-1.5 text-purple-200">
@@ -401,8 +403,8 @@ export const LocationDrawer: React.FC<LocationDrawerProps> = ({
                           className="bg-slate-900/70 rounded-xl p-3 border border-slate-800/90 space-y-2.5"
                         >
                           {/* Connector Type Group Header */}
-                          <div className="flex items-center justify-between pb-2 border-b border-slate-800/80">
-                            <div className="flex items-center gap-2">
+                          <div className="flex items-center justify-between pb-2 border-b border-slate-800/80 gap-2 flex-wrap">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <span className={`w-2 h-2 rounded-full ${isAvailable ? 'bg-emerald-400 shadow-[0_0_6px_#34d399]' : 'bg-rose-400'}`} />
                               <span className={`text-xs font-bold ${isDc ? 'text-cyan-300' : 'text-indigo-300'}`}>
                                 {stat.label}
