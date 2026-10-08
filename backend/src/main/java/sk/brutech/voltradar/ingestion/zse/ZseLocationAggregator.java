@@ -151,7 +151,8 @@ public final class ZseLocationAggregator {
                             conn.liveStatus(),
                             updatedSharing,
                             conn.publicPricePerKwh(),
-                            conn.lastStatusUpdate()
+                            conn.lastStatusUpdate(),
+                            conn.freeParkingMinutes()
                     ));
                 } else {
                     enhancedConnectors.add(conn);

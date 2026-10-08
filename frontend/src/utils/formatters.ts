@@ -192,3 +192,30 @@ export function formatRelativeTime(dateInput?: string | Date | null): string {
     return 'pred chvíľou';
   }
 }
+
+export function formatStandFreeParking(connectors?: Connector[]): string | null {
+  if (!connectors || connectors.length === 0) return null;
+
+  const validParkings = connectors
+    .map((c) => ({
+      minutes: c.freeParkingMinutes,
+      currentType: c.currentType,
+    }))
+    .filter((p) => typeof p.minutes === 'number' && p.minutes > 0);
+
+  if (validParkings.length === 0) return null;
+
+  const uniqueMinutes = Array.from(new Set(validParkings.map((p) => p.minutes!)));
+  if (uniqueMinutes.length === 1) {
+    return `${uniqueMinutes[0]} min`;
+  }
+
+  const dcParking = validParkings.find((p) => p.currentType === 'DC')?.minutes;
+  const acParking = validParkings.find((p) => p.currentType === 'AC')?.minutes;
+
+  if (dcParking && acParking && dcParking !== acParking) {
+    return `${dcParking} min (DC) • ${acParking} min (AC)`;
+  }
+
+  return uniqueMinutes.map((m) => `${m} min`).join(' • ');
+}

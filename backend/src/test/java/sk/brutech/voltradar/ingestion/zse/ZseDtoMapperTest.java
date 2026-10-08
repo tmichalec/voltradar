@@ -39,6 +39,7 @@ class ZseDtoMapperTest {
         assertThat(firstConnector.maxPowerKw()).isEqualByComparingTo("400");
         assertThat(firstConnector.liveStatus()).isEqualTo(LiveStatus.AVAILABLE);
         assertThat(firstConnector.publicPricePerKwh()).isEqualByComparingTo("0.79");
+        assertThat(firstConnector.freeParkingMinutes()).isEqualTo(60);
     }
 
     @Test

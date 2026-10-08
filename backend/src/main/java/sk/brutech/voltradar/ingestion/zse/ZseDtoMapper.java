@@ -84,6 +84,7 @@ public final class ZseDtoMapper {
         CurrentType currentType = resolveCurrentType(rawConnector, normalizedType.get(), maxPower);
         LiveStatus liveStatus = resolveLiveStatus(rawConnector.state());
         BigDecimal pricePerKwh = resolvePricePerKwh(rawConnector);
+        Integer freeParkingMinutes = resolveFreeParkingMinutes(rawConnector);
 
         String stationId = String.valueOf(station.id());
         Long connectorId = rawConnector.id() != null ? rawConnector.id() : 0L;
@@ -106,7 +107,8 @@ public final class ZseDtoMapper {
                 liveStatus,
                 powerSharing,
                 pricePerKwh,
-                Instant.now()
+                Instant.now(),
+                freeParkingMinutes
         ));
     }
 
@@ -199,6 +201,26 @@ public final class ZseDtoMapper {
                         Matcher matcher = PRICE_PATTERN.matcher(line.value());
                         if (matcher.matches()) {
                             return new BigDecimal(matcher.group(1).replace(',', '.'));
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    public static Integer resolveFreeParkingMinutes(ZseDriveDtos.Connector connector) {
+        if (connector.pricing() != null) {
+            for (ZseDriveDtos.PriceLine line : connector.pricing()) {
+                if (line.name() != null && (line.name().toLowerCase().contains("bezplatn")
+                        || line.name().toLowerCase().contains("free park"))) {
+                    if (line.value() != null) {
+                        Matcher matcher = Pattern.compile("(\\d+)").matcher(line.value());
+                        if (matcher.find()) {
+                            try {
+                                return Integer.parseInt(matcher.group(1));
+                            } catch (NumberFormatException ignored) {
+                            }
                         }
                     }
                 }

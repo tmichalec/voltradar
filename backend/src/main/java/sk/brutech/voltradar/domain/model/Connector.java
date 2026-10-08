@@ -17,7 +17,8 @@ public record Connector(
         LiveStatus liveStatus,
         PowerSharingInfo powerSharing,
         BigDecimal publicPricePerKwh,
-        Instant lastStatusUpdate
+        Instant lastStatusUpdate,
+        Integer freeParkingMinutes
 ) {
     public Connector {
         Objects.requireNonNull(id, "id must not be null");
@@ -27,5 +28,19 @@ public record Connector(
         Objects.requireNonNull(maxPowerKw, "maxPowerKw must not be null");
         Objects.requireNonNull(liveStatus, "liveStatus must not be null");
         Objects.requireNonNull(powerSharing, "powerSharing must not be null");
+    }
+
+    public Connector(
+            UUID id,
+            String evseId,
+            NormalizedConnectorType type,
+            CurrentType currentType,
+            BigDecimal maxPowerKw,
+            LiveStatus liveStatus,
+            PowerSharingInfo powerSharing,
+            BigDecimal publicPricePerKwh,
+            Instant lastStatusUpdate
+    ) {
+        this(id, evseId, type, currentType, maxPowerKw, liveStatus, powerSharing, publicPricePerKwh, lastStatusUpdate, null);
     }
 }

@@ -41,6 +41,7 @@ export interface Connector {
   powerSharing: PowerSharingInfo;
   publicPricePerKwh?: number;
   lastStatusUpdate?: string;
+  freeParkingMinutes?: number | null;
 }
 
 export interface ProviderStation {

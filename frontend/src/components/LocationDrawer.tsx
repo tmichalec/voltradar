@@ -8,6 +8,7 @@ import {
   getGoogleMapsUrl,
   getWazeUrl,
   formatRelativeTime,
+  formatStandFreeParking,
 } from '../utils/formatters';
 import {
   X,
@@ -330,6 +331,7 @@ export const LocationDrawer: React.FC<LocationDrawerProps> = ({
               const stationAvailable = stationConnectors.filter((c) => c.liveStatus === 'AVAILABLE').length;
               const stationMaxPower = getMaxLocationPower(stationConnectors);
               const stationStats = getConnectorTypeStats(stationConnectors);
+              const freeParkingLabel = formatStandFreeParking(stationConnectors);
 
               // Check if any charger unit matches this station
               const matchingUnit = location.chargerUnits?.find((u) =>
@@ -370,6 +372,13 @@ export const LocationDrawer: React.FC<LocationDrawerProps> = ({
                     </div>
                   </div>
 
+                  {/* Free parking information for stand */}
+                  {freeParkingLabel && (
+                    <div className="flex items-center gap-2 text-xs bg-emerald-950/30 border border-emerald-800/40 rounded-lg px-2.5 py-1.5 text-emerald-300">
+                      <Clock className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      <span>Bezplatné parkovanie: <strong className="font-semibold text-emerald-200">{freeParkingLabel}</strong></span>
+                    </div>
+                  )}
 
                   {/* Power sharing note for stand if present */}
                   {matchingUnit && (

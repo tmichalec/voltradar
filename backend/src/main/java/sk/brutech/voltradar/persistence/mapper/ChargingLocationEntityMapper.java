@@ -138,6 +138,7 @@ public final class ChargingLocationEntityMapper {
 
         entity.setLastKnownStatus(domain.liveStatus() != null ? domain.liveStatus() : LiveStatus.UNKNOWN);
         entity.setLastStatusUpdate(domain.lastStatusUpdate() != null ? domain.lastStatusUpdate() : Instant.now());
+        entity.setFreeParkingMinutes(domain.freeParkingMinutes());
 
         return entity;
     }
@@ -252,7 +253,8 @@ public final class ChargingLocationEntityMapper {
                 entity.getLastKnownStatus() != null ? entity.getLastKnownStatus() : LiveStatus.UNKNOWN,
                 powerSharing,
                 entity.getPublicPricePerKwh(),
-                entity.getLastStatusUpdate()
+                entity.getLastStatusUpdate(),
+                entity.getFreeParkingMinutes()
         );
     }
 }

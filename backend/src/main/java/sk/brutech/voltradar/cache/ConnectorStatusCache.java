@@ -149,7 +149,8 @@ public class ConnectorStatusCache {
                                             live,
                                             c.powerSharing(),
                                             c.publicPricePerKwh(),
-                                            c.lastStatusUpdate()
+                                            c.lastStatusUpdate(),
+                                            c.freeParkingMinutes()
                                     );
                                 }
                                 return c;

@@ -75,6 +75,9 @@ public class ConnectorEntity {
     @Column(name = "last_status_update")
     private Instant lastStatusUpdate;
 
+    @Column(name = "free_parking_minutes")
+    private Integer freeParkingMinutes;
+
     public ConnectorEntity() {
     }
 
@@ -196,5 +199,13 @@ public class ConnectorEntity {
 
     public void setLastStatusUpdate(Instant lastStatusUpdate) {
         this.lastStatusUpdate = lastStatusUpdate;
+    }
+
+    public Integer getFreeParkingMinutes() {
+        return freeParkingMinutes;
+    }
+
+    public void setFreeParkingMinutes(Integer freeParkingMinutes) {
+        this.freeParkingMinutes = freeParkingMinutes;
     }
 }
