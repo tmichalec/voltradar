@@ -88,6 +88,23 @@ public class ZseIngestionController {
     }
 
     /**
+     * Triggers targeted refresh for a specific charging location (ZSE API -> PostgreSQL DB + Redis status cache).
+     */
+    @PostMapping("/refresh/location/{locationId}")
+    @Operation(
+            summary = "Trigger refresh for single location",
+            description = "Fetches live ZSE Drive stations for the specified location ID, updates PostgreSQL database and synchronizes Redis live statuses."
+    )
+    @ApiResponse(responseCode = "200", description = "Refresh execution summary result")
+    public ResponseEntity<RefreshResult> triggerLocationRefresh(
+            @Parameter(description = "Location ID (e.g. zse-316067-79480)", example = "zse-316067-79480")
+            @PathVariable String locationId
+    ) {
+        RefreshResult result = refreshScheduler.refreshLocation(locationId);
+        return ResponseEntity.ok(result);
+    }
+
+    /**
      * Clears all persisted charging locations from PostgreSQL database and removes cached statuses from Redis.
      */
     @PostMapping("/clear")

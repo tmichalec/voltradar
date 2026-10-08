@@ -144,6 +144,56 @@ class ZseDataRefreshSchedulerTest {
     }
 
     @Test
+    void executesLocationRefreshSuccessfully() {
+        UUID connectorId = UUID.randomUUID();
+        Connector connector = new Connector(
+                connectorId,
+                "EVSE-101",
+                NormalizedConnectorType.CCS,
+                CurrentType.DC,
+                new BigDecimal("150.0"),
+                LiveStatus.AVAILABLE,
+                PowerSharingInfo.independent(new BigDecimal("150.0")),
+                new BigDecimal("0.49"),
+                Instant.now()
+        );
+
+        ProviderStation station = new ProviderStation(
+                "2145",
+                CpoProvider.ZSE_DRIVE,
+                "ZSE Einsteinova",
+                new GeoCoordinates(48.13, 17.11),
+                new Address("Einsteinova 1", "Bratislava", "85101", "SK"),
+                "Ultra",
+                List.of(connector),
+                "{}"
+        );
+
+        ChargingLocation location = new ChargingLocation(
+                "zse-2145",
+                "Bratislava - Einsteinova",
+                new GeoCoordinates(48.13, 17.11),
+                new Address("Einsteinova 1", "Bratislava", "85101", "SK"),
+                List.of(station),
+                List.of(),
+                null
+        );
+
+        when(persistenceService.findById("zse-2145")).thenReturn(java.util.Optional.of(location));
+        when(ingestionService.ingestStations(List.of(2145L), null)).thenReturn(List.of(location));
+
+        RefreshResult result = scheduler.refreshLocation("zse-2145");
+
+        assertEquals("SUCCESS", result.status());
+        assertEquals(1, result.locationsCount());
+        assertEquals(1, result.providerStationsCount());
+        assertEquals(1, result.connectorsCount());
+
+        verify(persistenceService).saveAll(anyList());
+        verify(statusCache).updateAllStatuses(any());
+    }
+
+    @Test
     void handlesEmptyIngestionGracefully() {
         when(ingestionService.ingestStations(ZseDataRefreshScheduler.RETRO_STATION_IDS, null)).thenReturn(List.of());
 

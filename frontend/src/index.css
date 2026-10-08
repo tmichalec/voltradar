@@ -19,6 +19,46 @@ html, body, #root {
   background-color: #0b0f19 !important;
 }
 
+/* Dark theme tooltip & popup styling */
+.leaflet-tooltip {
+  background: rgba(15, 23, 42, 0.96) !important;
+  backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(71, 85, 105, 0.5) !important;
+  border-radius: 0.75rem !important;
+  color: #f1f5f9 !important;
+  box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.6), 0 8px 12px -6px rgba(0, 0, 0, 0.5) !important;
+  padding: 0 !important;
+}
+
+.leaflet-tooltip-top:before {
+  border-top-color: rgba(15, 23, 42, 0.96) !important;
+}
+
+.leaflet-tooltip-bottom:before {
+  border-bottom-color: rgba(15, 23, 42, 0.96) !important;
+}
+
+.leaflet-tooltip-left:before {
+  border-left-color: rgba(15, 23, 42, 0.96) !important;
+}
+
+.leaflet-tooltip-right:before {
+  border-right-color: rgba(15, 23, 42, 0.96) !important;
+}
+
+.leaflet-popup-content-wrapper {
+  background: rgba(15, 23, 42, 0.96) !important;
+  backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(71, 85, 105, 0.5) !important;
+  border-radius: 0.75rem !important;
+  color: #f1f5f9 !important;
+  box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.6) !important;
+}
+
+.leaflet-popup-tip {
+  background: rgba(15, 23, 42, 0.96) !important;
+}
+
 /* Dark theme tiles adjustments */
 .dark-tiles .leaflet-tile {
   filter: brightness(0.75) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);

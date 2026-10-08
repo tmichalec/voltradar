@@ -99,7 +99,12 @@ class ChargingLocationTest {
         assertThat(location.metadata().totalConnectorsCount()).isEqualTo(3);
         assertThat(location.metadata().availableConnectorsCount()).isEqualTo(2);
         assertThat(location.metadata().ccsConnectorsCount()).isEqualTo(2);
+        assertThat(location.metadata().availableCcsConnectorsCount()).isEqualTo(1);
         assertThat(location.metadata().type2ConnectorsCount()).isEqualTo(1);
+        assertThat(location.metadata().availableType2ConnectorsCount()).isEqualTo(1);
+        assertThat(location.metadata().maxPowerKw()).isEqualTo(150);
+        assertThat(location.metadata().maxCcsPowerKw()).isEqualTo(150);
+        assertThat(location.metadata().maxType2PowerKw()).isEqualTo(22);
     }
 
     @Test

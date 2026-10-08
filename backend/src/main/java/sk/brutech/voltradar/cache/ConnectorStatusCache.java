@@ -176,7 +176,8 @@ public class ConnectorStatusCache {
                 location.address(),
                 updatedStations,
                 location.chargerUnits(),
-                null // Recalculates metadata automatically
+                null, // Recalculates metadata automatically
+                location.updatedAt()
         );
     }
 

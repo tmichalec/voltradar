@@ -111,6 +111,18 @@ class ZseIngestionControllerTest {
     }
 
     @Test
+    void triggersLocationRefreshSuccessfully() throws Exception {
+        RefreshResult result = RefreshResult.success(Instant.now(), 85, 1, 2, 4);
+        when(refreshScheduler.refreshLocation("zse-316067-79480")).thenReturn(result);
+
+        mockMvc.perform(post("/api/v1/ingestion/zse/refresh/location/zse-316067-79480"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SUCCESS"))
+                .andExpect(jsonPath("$.locationsCount").value(1))
+                .andExpect(jsonPath("$.connectorsCount").value(4));
+    }
+
+    @Test
     void returnsPersistedLocationsWithLiveStatus() throws Exception {
         ChargingLocation location = new ChargingLocation(
                 "loc-ba-einsteinova",

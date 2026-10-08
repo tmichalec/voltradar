@@ -91,6 +91,24 @@ export const api = {
   },
 
   /**
+   * Triggers a targeted refresh of a specific charging location by its ID.
+   */
+  async triggerLocationRefresh(locationId: string): Promise<RefreshResponse> {
+    const response = await requestWithFallback(`/api/v1/ingestion/zse/refresh/location/${encodeURIComponent(locationId)}`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Chyba pri obnovovaní lokality (HTTP ${response.status})`);
+    }
+
+    return response.json();
+  },
+
+  /**
    * Clears all persisted data from database and cache.
    */
   async clearAllData(): Promise<void> {

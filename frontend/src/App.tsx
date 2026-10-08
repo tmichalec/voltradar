@@ -17,6 +17,7 @@ export const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [isRefreshingRetro, setIsRefreshingRetro] = useState<boolean>(false);
+  const [isRefreshingLocation, setIsRefreshingLocation] = useState<boolean>(false);
   const [isClearing, setIsClearing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
@@ -107,6 +108,30 @@ export const App: React.FC = () => {
     }
   };
 
+  // Trigger targeted refresh for specific active location
+  const handleRefreshLocation = async (locationId: string) => {
+    setIsRefreshingLocation(true);
+    try {
+      const res = await api.triggerLocationRefresh(locationId);
+      const updated = await api.getPersistedLocations();
+      setLocations(updated || []);
+      const refreshedLoc = updated?.find((l) => l.id === locationId);
+      if (refreshedLoc) {
+        setSelectedLocation(refreshedLoc);
+        setNotification(`Lokalita "${refreshedLoc.name}" bola úspešne zaktualizovaná!`);
+      } else {
+        setNotification(`Lokalita bola úspešne zaktualizovaná (${res.totalPersisted} lokalít)!`);
+      }
+      setTimeout(() => setNotification(null), 4000);
+    } catch (err: any) {
+      console.error('Location refresh error:', err);
+      setNotification('Obnova vybranej lokality zlyhala. Skontrolujte pripojenie.');
+      setTimeout(() => setNotification(null), 5000);
+    } finally {
+      setIsRefreshingLocation(false);
+    }
+  };
+
   // Clear all data from DB and cache
   const handleClearAll = async () => {
     if (!window.confirm('Naozaj chcete vymazať všetky uložené dáta z databázy aj cache?')) {
@@ -179,7 +204,7 @@ export const App: React.FC = () => {
   // Global KPIs
   const totalConnectors = useMemo(() => {
     return locations.reduce(
-      (sum, loc) => sum + loc.providerStations.flatMap((s) => s.connectors).length,
+      (sum, loc) => sum + (loc.providerStations || []).flatMap((s) => s.connectors || []).length,
       0
     );
   }, [locations]);
@@ -188,8 +213,8 @@ export const App: React.FC = () => {
     return locations.reduce(
       (sum, loc) =>
         sum +
-        loc.providerStations
-          .flatMap((s) => s.connectors)
+        (loc.providerStations || [])
+          .flatMap((s) => s.connectors || [])
           .filter((c) => c.liveStatus === 'AVAILABLE').length,
       0
     );
@@ -270,12 +295,14 @@ export const App: React.FC = () => {
         />
 
         {/* Selected Location Detail Drawer */}
-        <LocationDrawer
-          location={selectedLocation}
-          onClose={() => setSelectedLocation(null)}
-          onRefreshRetro={handleRefreshRetro}
-          isRefreshingRetro={isRefreshingRetro}
-        />
+        {selectedLocation && (
+          <LocationDrawer
+            location={selectedLocation}
+            onClose={() => setSelectedLocation(null)}
+            onRefreshLocation={handleRefreshLocation}
+            isRefreshingLocation={isRefreshingLocation}
+          />
+        )}
       </main>
     </div>
   );

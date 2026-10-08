@@ -70,11 +70,18 @@ export function getConnectorTypeLabel(type: ConnectorType): string {
   }
 }
 
-export function getSharingStatusLabel(sharing: PowerSharingInfo): {
+export function getSharingStatusLabel(sharing?: PowerSharingInfo | null): {
   label: string;
   description: string;
   isShared: boolean;
 } {
+  if (!sharing) {
+    return {
+      label: 'Štandardné zapojenie',
+      description: 'Informácie o zdieľaní výkonu nie sú explicitne evidované.',
+      isShared: false,
+    };
+  }
   if (sharing.status === 'SHARED' || sharing.status === 'DYNAMIC_SHARED') {
     const total = sharing.totalStandPowerKw ? `${sharing.totalStandPowerKw} kW` : 'zdieľaný';
     return {
@@ -97,15 +104,91 @@ export function getSharingStatusLabel(sharing: PowerSharingInfo): {
   };
 }
 
-export function getMaxLocationPower(connectors: Connector[]): number {
+export function getMaxLocationPower(connectors?: Connector[]): number {
   if (!connectors || connectors.length === 0) return 0;
-  return Math.max(...connectors.map(c => c.maxPowerKw || 0));
+  return Math.max(...connectors.map(c => Number(c?.maxPowerKw) || 0), 0);
 }
 
-export function getGoogleMapsUrl(lat: number, lng: number, label?: string): string {
+export interface ConnectorTypeStats {
+  type: ConnectorType;
+  label: string;
+  shortLabel: string;
+  currentType: 'AC' | 'DC' | 'UNKNOWN';
+  totalCount: number;
+  availableCount: number;
+  maxPowerKw: number;
+}
+
+export function getConnectorTypeStats(connectors?: Connector[]): ConnectorTypeStats[] {
+  if (!connectors || connectors.length === 0) return [];
+
+  const typesOrder: ConnectorType[] = ['CCS', 'TYPE_2', 'CHAdeMO', 'TYPE_1', 'SCHUKO'];
+  const validConnectors = connectors.filter((c): c is Connector => !!c && !!c.type);
+  const presentTypes = Array.from(new Set(validConnectors.map(c => c.type)));
+
+  // Sort by defined order
+  presentTypes.sort((a, b) => {
+    const idxA = typesOrder.indexOf(a);
+    const idxB = typesOrder.indexOf(b);
+    return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
+  });
+
+  return presentTypes.map(type => {
+    const matching = validConnectors.filter(c => c.type === type);
+    const available = matching.filter(c => c.liveStatus === 'AVAILABLE').length;
+    const maxPower = Math.max(...matching.map(c => Number(c.maxPowerKw) || 0), 0);
+    const currentType = matching[0]?.currentType || (type === 'TYPE_2' ? 'AC' : 'DC');
+
+    let shortLabel = type === 'TYPE_2' ? 'Type 2' : type;
+
+    return {
+      type,
+      label: getConnectorTypeLabel(type),
+      shortLabel,
+      currentType,
+      totalCount: matching.length,
+      availableCount: available,
+      maxPowerKw: maxPower,
+    };
+  });
+}
+
+export function getGoogleMapsUrl(lat?: number, lng?: number, label?: string): string {
+  if (lat == null || lng == null) return '#';
   return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}${label ? `&destination_place_id=${encodeURIComponent(label)}` : ''}`;
 }
 
-export function getWazeUrl(lat: number, lng: number): string {
+export function getWazeUrl(lat?: number, lng?: number): string {
+  if (lat == null || lng == null) return '#';
   return `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
+}
+
+export function formatRelativeTime(dateInput?: string | Date | null): string {
+  if (!dateInput) return 'pred chvíľou';
+  try {
+    const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+    if (isNaN(date.getTime())) return 'pred chvíľou';
+
+    const diffMs = Date.now() - date.getTime();
+    const diffSec = Math.floor(diffMs / 1000);
+
+    if (diffSec < 45) {
+      return 'práve teraz';
+    }
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) {
+      return `pred ${diffMin} min`;
+    }
+    const diffHours = Math.floor(diffMin / 60);
+    if (diffHours < 24) {
+      return `pred ${diffHours} hod`;
+    }
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) {
+      return `pred ${diffDays} dňami`;
+    }
+    return date.toLocaleDateString('sk-SK', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  } catch {
+    return 'pred chvíľou';
+  }
 }

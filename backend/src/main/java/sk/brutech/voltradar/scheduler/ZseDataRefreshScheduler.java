@@ -68,6 +68,66 @@ public class ZseDataRefreshScheduler {
     }
 
     /**
+     * Refreshes specifically the stations belonging to the given charging location ID.
+     */
+    public RefreshResult refreshLocation(String locationId) {
+        if (locationId == null || locationId.isBlank()) {
+            return RefreshResult.failed(Instant.now(), 0, "Location ID must not be null or blank");
+        }
+
+        java.util.Optional<ChargingLocation> locationOpt = persistenceService.findById(locationId);
+        List<Long> stationIds = new java.util.ArrayList<>();
+        String name = locationId;
+
+        if (locationOpt.isPresent()) {
+            ChargingLocation location = locationOpt.get();
+            if (location.name() != null && !location.name().isBlank()) {
+                name = location.name();
+            }
+            if (location.providerStations() != null) {
+                for (var st : location.providerStations()) {
+                    if (st.providerStationId() != null) {
+                        try {
+                            stationIds.add(Long.parseLong(st.providerStationId()));
+                        } catch (NumberFormatException ignored) {
+                        }
+                    }
+                }
+            }
+        }
+
+        if (stationIds.isEmpty()) {
+            stationIds.addAll(parseStationIdsFromLocationId(locationId));
+        }
+
+        if (stationIds.isEmpty()) {
+            return RefreshResult.failed(Instant.now(), 0, "No provider station IDs found for location: " + locationId);
+        }
+
+        return refreshStationIds(stationIds, name);
+    }
+
+    /**
+     * Extracts numeric station IDs from composite location IDs (e.g. zse-316067-79480).
+     */
+    public static List<Long> parseStationIdsFromLocationId(String locationId) {
+        if (locationId == null || locationId.isBlank()) {
+            return List.of();
+        }
+        List<Long> ids = new java.util.ArrayList<>();
+        String[] parts = locationId.split("[^0-9]+");
+        for (String part : parts) {
+            if (!part.isBlank()) {
+                try {
+                    ids.add(Long.parseLong(part));
+                } catch (NumberFormatException ignored) {
+                }
+            }
+        }
+        return ids;
+    }
+
+    /**
      * Executes targeted refresh pipeline for specific station IDs: Ingest -> Persist to DB -> Cache in Redis.
      */
     public RefreshResult refreshStationIds(List<Long> stationIds, String targetName) {

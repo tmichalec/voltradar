@@ -1,17 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import type { ChargingLocation } from '../types/charging';
 import {
   getStatusBadge,
-  getConnectorTypeLabel,
   getSharingStatusLabel,
   getMaxLocationPower,
+  getConnectorTypeStats,
   getGoogleMapsUrl,
   getWazeUrl,
+  formatRelativeTime,
 } from '../utils/formatters';
 import {
   X,
   MapPin,
-  Zap,
+  RefreshCw,
+  Clock,
   Navigation,
   ExternalLink,
   ShieldCheck,
@@ -23,29 +25,39 @@ import {
   Cpu,
   Layers,
   Radio,
+  Server,
 } from 'lucide-react';
 
 interface LocationDrawerProps {
   location: ChargingLocation | null;
   onClose: () => void;
-  onRefreshRetro?: () => void;
-  isRefreshingRetro?: boolean;
+  onRefreshLocation?: (locationId: string) => void;
+  isRefreshingLocation?: boolean;
 }
 
 export const LocationDrawer: React.FC<LocationDrawerProps> = ({
   location,
   onClose,
-  onRefreshRetro,
-  isRefreshingRetro = false,
+  onRefreshLocation,
+  isRefreshingLocation = false,
 }) => {
   const [copiedEvse, setCopiedEvse] = useState<string | null>(null);
   const [showRawDetails, setShowRawDetails] = useState(false);
 
+  // Stable sorting of provider stations by name (natural numeric order) and ID
+  const sortedStations = useMemo(() => {
+    if (!location?.providerStations) return [];
+    return [...location.providerStations].sort(
+      (a, b) =>
+        (a.name || '').localeCompare(b.name || '', undefined, { numeric: true, sensitivity: 'base' }) ||
+        (a.providerStationId || '').localeCompare(b.providerStationId || '', undefined, { numeric: true })
+    );
+  }, [location?.providerStations]);
+
   if (!location) return null;
 
-  const allConnectors = location.providerStations.flatMap((s) => s.connectors);
-  const maxPower = getMaxLocationPower(allConnectors);
-  const availableCount = allConnectors.filter((c) => c.liveStatus === 'AVAILABLE').length;
+  const allConnectors = (location.providerStations || []).flatMap((s) => s.connectors || []);
+  const connectorStats = getConnectorTypeStats(allConnectors);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -54,17 +66,17 @@ export const LocationDrawer: React.FC<LocationDrawerProps> = ({
   };
 
   const gmapsUrl = getGoogleMapsUrl(
-    location.coordinates.latitude,
-    location.coordinates.longitude,
+    location.coordinates?.latitude,
+    location.coordinates?.longitude,
     location.name
   );
   const wazeUrl = getWazeUrl(
-    location.coordinates.latitude,
-    location.coordinates.longitude
+    location.coordinates?.latitude,
+    location.coordinates?.longitude
   );
 
   return (
-    <div className="fixed top-14 right-0 bottom-0 w-full sm:w-[460px] md:w-[500px] bg-slate-900/95 backdrop-blur-xl border-l border-slate-800 shadow-2xl z-40 flex flex-col transition-all duration-300 ease-out text-slate-100 animate-in slide-in-from-right">
+    <div className="fixed top-14 right-0 bottom-0 w-full sm:w-[480px] md:w-[540px] bg-slate-900/95 backdrop-blur-xl border-l border-slate-800 shadow-2xl z-40 flex flex-col transition-all duration-300 ease-out text-slate-100 animate-in slide-in-from-right">
       {/* Header */}
       <div className="p-5 border-b border-slate-800 bg-gradient-to-b from-slate-900 to-slate-950/80">
         <div className="flex items-start justify-between gap-3">
@@ -126,43 +138,103 @@ export const LocationDrawer: React.FC<LocationDrawerProps> = ({
           </a>
         </div>
 
-        {/* Quick Refresh Button for Retro */}
-        {onRefreshRetro && (location.name?.toLowerCase().includes('retro') ||
-          location.providerStations?.some((s) => s.providerStationId === '79480' || s.providerStationId === '316067')) && (
-          <button
-            onClick={onRefreshRetro}
-            disabled={isRefreshingRetro}
-            className="w-full mt-2.5 flex items-center justify-center gap-2 px-3 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 active:scale-98 border border-emerald-500/40 rounded-xl text-xs font-semibold text-emerald-300 hover:text-emerald-200 transition-all cursor-pointer shadow-sm disabled:opacity-50"
-          >
-            <Zap className={`w-3.5 h-3.5 text-emerald-400 ${isRefreshingRetro ? 'animate-bounce' : ''}`} />
-            <span>{isRefreshingRetro ? 'Aktualizujem Retro zo ZSE API...' : '⚡ Aktualizovať iba Retro (rýchly sync)'}</span>
-          </button>
-        )}
+        {/* Sync Status and Single Refresh Button for Current Location */}
+        <div className="mt-3 flex items-center justify-between gap-3 p-2.5 bg-slate-950/60 rounded-xl border border-slate-800/80">
+          <div className="flex items-center gap-2 min-w-0 text-xs text-slate-400">
+            <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <div className="truncate">
+              <span className="text-slate-500 text-[10px] uppercase font-semibold block tracking-wider">Synchronizované</span>
+              <span
+                className="font-medium text-slate-200"
+                title={location.updatedAt ? new Date(location.updatedAt).toLocaleString('sk-SK') : undefined}
+              >
+                {formatRelativeTime(location.updatedAt)}
+              </span>
+            </div>
+          </div>
 
-        {/* Key KPI Badges */}
-        <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-slate-800/80 text-center">
-          <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-2">
-            <div className="text-[10px] text-slate-400 uppercase tracking-wider font-medium">Max. Výkon</div>
-            <div className="text-base font-bold text-cyan-400">{maxPower} <span className="text-xs font-normal">kW</span></div>
+          {onRefreshLocation && (
+            <button
+              onClick={() => onRefreshLocation(location.id)}
+              disabled={isRefreshingLocation}
+              title="Aktualizovať dáta tejto lokality"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 active:scale-95 border border-emerald-500/40 rounded-lg text-xs font-semibold text-emerald-300 hover:text-emerald-200 transition-all cursor-pointer shadow-sm disabled:opacity-50 shrink-0"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 text-emerald-400 ${isRefreshingLocation ? 'animate-spin' : ''}`} />
+              <span>{isRefreshingLocation ? 'Aktualizujem...' : 'Aktualizovať'}</span>
+            </button>
+          )}
+        </div>
+
+        {/* Key KPI Badges: Availability & Max Power separately for CCS and Type 2 */}
+        <div className="mt-3 pt-3 border-t border-slate-800/80 space-y-2">
+          <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium">
+            <span>Dostupnosť & Max. výkon podľa typu konektora:</span>
           </div>
-          <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-2">
-            <div className="text-[10px] text-slate-400 uppercase tracking-wider font-medium">Dostupnosť</div>
-            <div className={`text-base font-bold ${availableCount > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-              {availableCount} <span className="text-xs font-normal text-slate-400">/ {allConnectors.length}</span>
-            </div>
-          </div>
-          <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-2">
-            <div className="text-[10px] text-slate-400 uppercase tracking-wider font-medium">Stojany</div>
-            <div className="text-base font-bold text-purple-400">
-              {location.chargerUnits?.length || location.providerStations?.length || 1}
-            </div>
+
+          <div className={`grid gap-2 ${connectorStats.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+            {connectorStats.map((stat) => {
+              const isAvailable = stat.availableCount > 0;
+              const isDc = stat.currentType === 'DC';
+              const typeStands = (location.providerStations || []).filter((station) =>
+                station.connectors?.some((c) => c.type === stat.type)
+              ).length || 1;
+
+              const standsLabel =
+                typeStands === 1
+                  ? '1 stojan'
+                  : typeStands >= 2 && typeStands <= 4
+                  ? `${typeStands} stojany`
+                  : `${typeStands} stojanov`;
+
+              return (
+                <div
+                  key={stat.type}
+                  className={`rounded-xl p-2.5 border transition-all ${
+                    isDc
+                      ? 'bg-gradient-to-br from-cyan-950/40 to-slate-950/70 border-cyan-500/30'
+                      : 'bg-gradient-to-br from-indigo-950/40 to-slate-950/70 border-indigo-500/30'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-1 mb-1.5">
+                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <span className={`w-2 h-2 rounded-full ${isAvailable ? 'bg-emerald-400 shadow-[0_0_6px_#34d399]' : 'bg-amber-400'}`} />
+                      {stat.shortLabel}
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded font-medium bg-purple-950/70 text-purple-300 border border-purple-800/40">
+                        {standsLabel}
+                      </span>
+                      <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded uppercase font-semibold ${isDc ? 'bg-cyan-950 text-cyan-300 border border-cyan-800/40' : 'bg-indigo-950 text-indigo-300 border border-indigo-800/40'}`}>
+                        {stat.currentType}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-baseline justify-between mt-1">
+                    <div>
+                      <div className="text-[10px] text-slate-400 uppercase">Max. výkon</div>
+                      <div className="text-base font-bold text-cyan-300 font-mono">
+                        {stat.maxPowerKw} <span className="text-xs font-normal text-slate-400">kW</span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[10px] text-slate-400 uppercase">Dostupnosť</div>
+                      <div className={`text-base font-bold font-mono ${isAvailable ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        {stat.availableCount} <span className="text-xs font-normal text-slate-400">/ {stat.totalCount} voľné</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
 
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto p-5 space-y-6">
-        {/* Physical Charger Units (Power Sharing Stands) */}
+        {/* Physical Charger Units (Power Sharing Stands - Overview if available) */}
         {location.chargerUnits && location.chargerUnits.length > 0 && (
           <div>
             <div className="flex items-center justify-between mb-2.5">
@@ -233,88 +305,186 @@ export const LocationDrawer: React.FC<LocationDrawerProps> = ({
           </div>
         )}
 
-        {/* Connectors Section */}
+        {/* Live Status Grouped by Charger Stand (Živý stav podľa stojanu) */}
         <div>
-          <div className="flex items-center justify-between mb-2.5">
+          <div className="flex items-center justify-between mb-3">
             <h3 className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-              <Zap className="w-4 h-4 text-emerald-400" />
-              Konektory & Živý stav
+              <Server className="w-4 h-4 text-emerald-400" />
+              Živý stav konektorov podľa stojanu
             </h3>
             <span className="text-[11px] text-slate-400 font-mono">
-              Spolu: {allConnectors.length}
+              Spolu: {allConnectors.length} konektorov
             </span>
           </div>
 
-          <div className="space-y-3">
-            {allConnectors.map((connector) => {
-              const statusBadge = getStatusBadge(connector.liveStatus);
-              const sharingInfo = getSharingStatusLabel(connector.powerSharing);
+          <div className="space-y-4">
+            {sortedStations.map((station, stationIndex) => {
+              const stationConnectors = station.connectors || [];
+              const stationAvailable = stationConnectors.filter((c) => c.liveStatus === 'AVAILABLE').length;
+              const stationMaxPower = getMaxLocationPower(stationConnectors);
+              const stationStats = getConnectorTypeStats(stationConnectors);
+
+              // Check if any charger unit matches this station
+              const matchingUnit = location.chargerUnits?.find((u) =>
+                u.evseIds?.some((evseId) => stationConnectors.some((c) => c.evseId === evseId))
+              );
 
               return (
                 <div
-                  key={connector.id}
-                  className={`bg-slate-950/80 border ${statusBadge.borderClass} rounded-xl p-4 transition-all hover:border-slate-600 shadow-md`}
+                  key={station.providerStationId || `station-${stationIndex}`}
+                  className="bg-slate-950/70 border border-slate-800/90 rounded-2xl p-4 shadow-lg space-y-3"
                 >
-                  {/* Status & Type Header */}
-                  <div className="flex items-start justify-between gap-2 mb-2.5">
+                  {/* Stand Header */}
+                  <div className="flex items-start justify-between gap-2 border-b border-slate-800/80 pb-3">
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-white">
-                          {getConnectorTypeLabel(connector.type)}
+                        <span className="px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase rounded bg-purple-500/10 text-purple-300 border border-purple-500/30">
+                          Stojan #{stationIndex + 1}
                         </span>
-                        <span className="px-1.5 py-0.5 text-[10px] font-mono uppercase rounded bg-slate-800 text-slate-300 border border-slate-700">
-                          {connector.currentType}
-                        </span>
+                        <h4 className="text-sm font-bold text-white">
+                          {station.name}
+                        </h4>
                       </div>
-                      <div className="text-xs font-mono text-slate-400 mt-0.5 flex items-center gap-1">
-                        <span>EVSE: {connector.evseId}</span>
-                        <button
-                          onClick={() => copyToClipboard(connector.evseId)}
-                          title="Kopírovať EVSE ID"
-                          className="p-1 hover:text-white transition-colors cursor-pointer"
-                        >
-                          {copiedEvse === connector.evseId ? (
-                            <Check className="w-3 h-3 text-emerald-400" />
-                          ) : (
-                            <Copy className="w-3 h-3 text-slate-500" />
-                          )}
-                        </button>
+                      <div className="text-xs text-slate-400 mt-1 flex items-center gap-2">
+                        <span>ID stanice: <strong className="font-mono text-slate-300">{station.providerStationId}</strong></span>
+                        {station.rawProviderType && (
+                          <span>&bull; Typ: <strong className="text-slate-300">{station.rawProviderType}</strong></span>
+                        )}
                       </div>
                     </div>
 
-                    {/* Live Status Badge */}
-                    <div
-                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border ${statusBadge.bgClass} ${statusBadge.borderClass} ${statusBadge.textClass} text-xs font-semibold`}
-                    >
-                      <span className={`w-2 h-2 rounded-full ${statusBadge.dotClass}`} />
-                      <span>{statusBadge.label}</span>
-                    </div>
-                  </div>
-
-                  {/* Power & Tariff Info Grid */}
-                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/80 text-xs">
-                    <div>
-                      <span className="text-slate-500 text-[11px] block">Max. výkon konektora</span>
-                      <span className="font-bold text-cyan-300 text-sm">
-                        {connector.maxPowerKw} kW
+                    <div className="text-right shrink-0">
+                      <span className="text-xs font-mono font-bold text-cyan-300 bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-800/40 block mb-1">
+                        max {stationMaxPower} kW
                       </span>
-                    </div>
-
-                    <div>
-                      <span className="text-slate-500 text-[11px] block">Verejná cena</span>
-                      <span className="font-bold text-emerald-400 text-sm">
-                        {connector.publicPricePerKwh ? `${connector.publicPricePerKwh.toFixed(2)} €/kWh` : 'Podľa cenníka'}
+                      <span className={`text-[11px] font-semibold ${stationAvailable > 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                        {stationAvailable}/{stationConnectors.length} voľné
                       </span>
                     </div>
                   </div>
 
-                  {/* Power sharing details */}
-                  {sharingInfo.isShared && (
-                    <div className="mt-2.5 pt-2 border-t border-slate-900 flex items-center gap-1.5 text-[11px] text-purple-300 bg-purple-950/30 px-2 py-1.5 rounded-lg border border-purple-800/30">
-                      <Share2 className="w-3 h-3 text-purple-400 shrink-0" />
-                      <span>{sharingInfo.description}</span>
+
+                  {/* Power sharing note for stand if present */}
+                  {matchingUnit && (
+                    <div className="flex items-center gap-2 text-xs bg-purple-950/30 border border-purple-800/40 rounded-lg px-2.5 py-1.5 text-purple-200">
+                      <Share2 className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                      <span>{matchingUnit.label} &bull; Zdieľaný stojan (celkovo {matchingUnit.totalPowerKw} kW)</span>
                     </div>
                   )}
+
+                  {/* Connectors on this stand grouped by connector type */}
+                  <div className="space-y-3 pt-1">
+                    {stationStats.map((stat) => {
+                      const groupConnectors = stationConnectors.filter((c) => c.type === stat.type);
+                      const isDc = stat.currentType === 'DC';
+                      const isAvailable = stat.availableCount > 0;
+
+                      return (
+                        <div
+                          key={stat.type}
+                          className="bg-slate-900/70 rounded-xl p-3 border border-slate-800/90 space-y-2.5"
+                        >
+                          {/* Connector Type Group Header */}
+                          <div className="flex items-center justify-between pb-2 border-b border-slate-800/80">
+                            <div className="flex items-center gap-2">
+                              <span className={`w-2 h-2 rounded-full ${isAvailable ? 'bg-emerald-400 shadow-[0_0_6px_#34d399]' : 'bg-rose-400'}`} />
+                              <span className={`text-xs font-bold ${isDc ? 'text-cyan-300' : 'text-indigo-300'}`}>
+                                {stat.label}
+                              </span>
+                              <span
+                                className={`text-[10px] font-mono px-1.5 py-0.2 rounded uppercase font-semibold ${
+                                  isDc
+                                    ? 'bg-cyan-950/80 text-cyan-400 border border-cyan-800/50'
+                                    : 'bg-indigo-950/80 text-indigo-400 border border-indigo-800/50'
+                                }`}
+                              >
+                                {stat.currentType}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-2 text-xs font-mono">
+                              <span className={`font-semibold ${isAvailable ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                {stat.availableCount}/{stat.totalCount} voľné
+                              </span>
+                              <span className="text-slate-600">&bull;</span>
+                              <span className="font-bold text-amber-300 bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-800/40">
+                                {stat.maxPowerKw} kW
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Individual Connectors in this type group */}
+                          <div className="space-y-2">
+                            {groupConnectors.map((connector) => {
+                              const statusBadge = getStatusBadge(connector.liveStatus);
+                              const sharingInfo = getSharingStatusLabel(connector.powerSharing);
+
+                              return (
+                                <div
+                                  key={connector.id || connector.evseId}
+                                  className={`bg-slate-950/80 border ${statusBadge.borderClass} rounded-lg p-2.5 transition-all hover:border-slate-600 shadow-sm`}
+                                >
+                                  {/* Status & EVSE Header */}
+                                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                                    <div className="text-xs font-mono text-slate-300 flex items-center gap-1.5">
+                                      <span className="text-slate-500 text-[11px]">EVSE:</span>
+                                      <span className="font-semibold text-white">{connector.evseId}</span>
+                                      <button
+                                        onClick={() => copyToClipboard(connector.evseId)}
+                                        title="Kopírovať EVSE ID"
+                                        className="p-1 hover:text-white transition-colors cursor-pointer text-slate-500"
+                                      >
+                                        {copiedEvse === connector.evseId ? (
+                                          <Check className="w-3 h-3 text-emerald-400" />
+                                        ) : (
+                                          <Copy className="w-3 h-3" />
+                                        )}
+                                      </button>
+                                    </div>
+
+                                    {/* Live Status Badge */}
+                                    <div
+                                      className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border ${statusBadge.bgClass} ${statusBadge.borderClass} ${statusBadge.textClass} text-[11px] font-semibold`}
+                                    >
+                                      <span className={`w-1.5 h-1.5 rounded-full ${statusBadge.dotClass}`} />
+                                      <span>{statusBadge.label}</span>
+                                    </div>
+                                  </div>
+
+                                  {/* Power & Pricing Info Grid */}
+                                  <div className="grid grid-cols-2 gap-2 pt-1.5 border-t border-slate-900/80 text-xs">
+                                    <div>
+                                      <span className="text-slate-500 text-[10px] block uppercase tracking-wider">Výkon</span>
+                                      <span className="font-bold text-cyan-300 text-xs font-mono">
+                                        {connector.maxPowerKw} kW
+                                      </span>
+                                    </div>
+
+                                    <div>
+                                      <span className="text-slate-500 text-[10px] block uppercase tracking-wider">Verejná cena</span>
+                                      <span className="font-bold text-emerald-400 text-xs font-mono">
+                                        {connector.publicPricePerKwh != null && !isNaN(Number(connector.publicPricePerKwh))
+                                          ? `${Number(connector.publicPricePerKwh).toFixed(2)} €/kWh`
+                                          : 'Podľa cenníka'}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {/* Power sharing details */}
+                                  {sharingInfo?.isShared && (
+                                    <div className="mt-1.5 pt-1.5 border-t border-slate-900 flex items-center gap-1.5 text-[10px] text-purple-300 bg-purple-950/30 px-2 py-1 rounded border border-purple-800/30">
+                                      <Share2 className="w-3 h-3 text-purple-400 shrink-0" />
+                                      <span>{sharingInfo.description}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               );
             })}
@@ -329,21 +499,21 @@ export const LocationDrawer: React.FC<LocationDrawerProps> = ({
           >
             <span className="flex items-center gap-1.5">
               <Cpu className="w-3.5 h-3.5 text-slate-500" />
-              Technické informácie poskytovateľa ({location.providerStations.length} staníc)
+              Technické informácie poskytovateľa ({location.providerStations?.length || 0} staníc)
             </span>
             {showRawDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
 
           {showRawDetails && (
             <div className="p-4 border-t border-slate-800 space-y-3 text-xs bg-slate-950/80">
-              {location.providerStations.map((station) => (
+              {sortedStations.map((station) => (
                 <div key={station.providerStationId} className="space-y-1 pb-3 border-b border-slate-800/60 last:border-0 last:pb-0">
                   <div className="flex justify-between items-center text-slate-300 font-medium">
                     <span>{station.name}</span>
                     <span className="text-slate-500 font-mono text-[11px]">ID: {station.providerStationId}</span>
                   </div>
                   <div className="text-slate-500 text-[11px]">
-                    Typ: <span className="text-slate-400">{station.rawProviderType || 'N/A'}</span> | GPS: {station.coordinates.latitude}, {station.coordinates.longitude}
+                    Typ: <span className="text-slate-400">{station.rawProviderType || 'N/A'}</span> | GPS: {station.coordinates?.latitude ?? 'N/A'}, {station.coordinates?.longitude ?? 'N/A'}
                   </div>
                 </div>
               ))}

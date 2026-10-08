@@ -71,7 +71,12 @@ export interface LocationMetadata {
   totalConnectorsCount: number;
   availableConnectorsCount: number;
   ccsConnectorsCount: number;
+  availableCcsConnectorsCount?: number;
   type2ConnectorsCount: number;
+  availableType2ConnectorsCount?: number;
+  maxPowerKw?: number;
+  maxCcsPowerKw?: number;
+  maxType2PowerKw?: number;
 }
 
 export interface ChargingLocation {
@@ -82,6 +87,7 @@ export interface ChargingLocation {
   providerStations: ProviderStation[];
   chargerUnits: ChargerUnit[];
   metadata?: LocationMetadata;
+  updatedAt?: string;
 }
 
 export interface FilterState {

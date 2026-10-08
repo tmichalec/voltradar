@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import type { ChargingLocation } from '../types/charging';
-import { getMaxLocationPower } from '../utils/formatters';
+import { getMaxLocationPower, getConnectorTypeStats } from '../utils/formatters';
 import { Locate, Plus, Minus } from 'lucide-react';
 
 interface MapViewProps {
@@ -108,20 +108,15 @@ export const MapView: React.FC<MapViewProps> = ({
         ? 'ring-4 ring-white ring-offset-2 ring-offset-slate-900 scale-125 z-50 animate-bounce'
         : 'hover:scale-110';
 
-      const distinctTypes = Array.from(new Set(allConnectors.map((c) => c.type)));
-      const hasType2 = distinctTypes.includes('TYPE_2');
-      const hasCcs = distinctTypes.includes('CCS');
+      const connectorStats = getConnectorTypeStats(allConnectors);
 
-      const plugBadges = [];
-      if (hasCcs) plugBadges.push('CCS');
-      if (hasType2) plugBadges.push('Type 2');
-
+      const plugBadges = connectorStats.map((s) => `${s.shortLabel}: ${s.availableCount}/${s.totalCount}`);
       const plugLabel = plugBadges.join(' • ');
 
       const customHtml = `
         <div class="custom-pin relative flex flex-col items-center cursor-pointer transition-transform duration-200 ${selectedClass}">
           <div class="flex flex-col items-center px-2.5 py-1 rounded-2xl bg-gradient-to-r ${bgGradient} text-white font-bold text-[11px] shadow-lg border border-white/20"
-               style="box-shadow: 0 4px 14px ${shadowColor}; min-width: 58px;">
+               style="box-shadow: 0 4px 14px ${shadowColor}; min-width: 60px;">
             <div class="flex items-center gap-1">
               <span class="w-2 h-2 rounded-full ${statusDot} shadow-sm shrink-0"></span>
               <span>${maxPower > 0 ? `${maxPower} kW` : 'EV'}</span>
@@ -135,32 +130,92 @@ export const MapView: React.FC<MapViewProps> = ({
       const icon = L.divIcon({
         className: 'custom-leaflet-marker',
         html: customHtml,
-        iconSize: [68, 38],
-        iconAnchor: [34, 38],
+        iconSize: [72, 40],
+        iconAnchor: [36, 40],
       });
 
       const marker = L.marker([location.coordinates.latitude, location.coordinates.longitude], {
         icon,
       });
 
-      const typeSummary = distinctTypes
-        .map((t) => {
-          const count = allConnectors.filter((c) => c.type === t).length;
-          const maxP = Math.max(
-            ...allConnectors.filter((c) => c.type === t).map((c) => c.maxPowerKw || 0)
-          );
-          const name = t === 'TYPE_2' ? 'Type 2 (AC)' : t;
-          return `${count}x ${name} ${maxP} kW`;
+      const typeSummary = connectorStats
+        .map((s) => {
+          const isDc = s.currentType === 'DC';
+          const typeColor = isDc ? 'text-cyan-300' : 'text-indigo-300';
+          const availColor = s.availableCount > 0 ? '#34d399' : '#f87171';
+          return `<div class="flex items-center justify-between gap-3 text-[11px] py-0.5">
+            <span class="font-medium ${typeColor}">${s.label} (${s.currentType}):</span>
+            <span class="font-mono"><strong style="color: ${availColor}">${s.availableCount}/${s.totalCount} voľné</strong> &bull; <span class="text-amber-300 font-bold">${s.maxPowerKw} kW</span></span>
+          </div>`;
         })
-        .join('<br/>');
+        .join('');
+
+      const sortedStations = [...(location.providerStations || [])].sort(
+        (a, b) =>
+          (a.name || '').localeCompare(b.name || '', undefined, { numeric: true, sensitivity: 'base' }) ||
+          (a.providerStationId || '').localeCompare(b.providerStationId || '', undefined, { numeric: true })
+      );
+
+      const standsSummary = sortedStations
+        .map((st, idx) => {
+          const stConnectors = st.connectors || [];
+          const stStats = getConnectorTypeStats(stConnectors);
+          const stTypeDetails = stStats
+            .map((s) => {
+              const isDc = s.currentType === 'DC';
+              const typeColor = isDc ? 'text-cyan-300' : 'text-indigo-300';
+              const badgeBg = isDc ? 'bg-cyan-950/40 border-cyan-800/40' : 'bg-indigo-950/40 border-indigo-800/40';
+              const availColor = s.availableCount > 0 ? 'text-emerald-400' : 'text-rose-400';
+
+              return `<div class="flex items-center justify-between gap-2 px-2 py-1 rounded text-[11px] ${badgeBg} border font-mono">
+                <span class="font-bold ${typeColor}">${s.shortLabel} (${s.currentType}):</span>
+                <span class="flex items-center gap-1.5">
+                  <strong class="${availColor}">${s.availableCount}/${s.totalCount} voľné</strong>
+                  <span class="text-slate-500">&bull;</span>
+                  <span class="text-amber-300 font-bold">${s.maxPowerKw} kW</span>
+                </span>
+              </div>`;
+            })
+            .join('');
+
+          return `<div class="bg-slate-900/90 rounded-lg p-2 border border-slate-700/60 space-y-1.5 shadow-sm">
+            <div class="flex items-center justify-between gap-1.5 pb-1 border-b border-slate-800">
+              <span class="px-1.5 py-0.5 text-[10px] font-bold tracking-wider uppercase rounded bg-purple-950/80 text-purple-300 border border-purple-700/50">
+                Stojan #${idx + 1}
+              </span>
+              <span class="text-[10px] text-slate-400 font-normal truncate max-w-[140px]" title="${st.name}">${st.name}</span>
+            </div>
+            <div class="space-y-1">
+              ${stTypeDetails || '<div class="text-[10px] text-slate-500 italic">Žiadne konektory</div>'}
+            </div>
+          </div>`;
+        })
+        .join('');
 
       marker.bindTooltip(
-        `<div class="text-xs p-1">
-          <div class="font-bold text-slate-100 text-[13px] mb-0.5">${location.name}</div>
-          <div class="text-[11px] text-emerald-400 font-medium mb-1">${availableCount}/${totalCount} voľných</div>
-          <div class="text-[10px] text-slate-300 font-mono">${typeSummary}</div>
+        `<div class="p-2.5 min-w-[260px] max-w-[320px] font-sans space-y-2">
+          <div>
+            <div class="font-bold text-white text-[13px] leading-snug">${location.name}</div>
+            ${location.address?.street ? `<div class="text-[11px] text-slate-400 mt-0.5">${location.address.street}${location.address.city ? `, ${location.address.city}` : ''}</div>` : ''}
+          </div>
+
+          <div class="space-y-1 border-y border-slate-700/60 py-1.5">
+            <div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-0.5">Celková dostupnosť lokality:</div>
+            ${typeSummary}
+          </div>
+
+          ${location.providerStations && location.providerStations.length > 0 ? `
+            <div class="space-y-1.5 pt-0.5">
+              <div class="text-[10px] uppercase tracking-wider text-purple-300 font-semibold flex items-center justify-between">
+                <span>Rozpis podľa stojanov (${location.providerStations.length}):</span>
+              </div>
+              <div class="space-y-1.5">
+                ${standsSummary}
+              </div>
+            </div>
+          ` : ''}
         </div>`,
-        { direction: 'top', offset: [0, -32], opacity: 0.95 }
+        { direction: 'top', offset: [0, -32], opacity: 0.98 }
       );
 
       marker.on('click', () => {
@@ -193,7 +248,14 @@ export const MapView: React.FC<MapViewProps> = ({
   // Center on selected location
   useEffect(() => {
     const map = mapInstanceRef.current;
-    if (!map || !selectedLocation) return;
+    if (
+      !map ||
+      !selectedLocation?.coordinates ||
+      typeof selectedLocation.coordinates.latitude !== 'number' ||
+      typeof selectedLocation.coordinates.longitude !== 'number'
+    ) {
+      return;
+    }
 
     map.flyTo([selectedLocation.coordinates.latitude, selectedLocation.coordinates.longitude], 16, {
       duration: 1.2,

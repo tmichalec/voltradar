@@ -41,6 +41,9 @@ public final class ChargingLocationEntityMapper {
             entity.setPostalCode(domain.address().postalCode());
             entity.setCountryCode(domain.address().countryCode());
         }
+        if (domain.updatedAt() != null) {
+            entity.setUpdatedAt(domain.updatedAt());
+        }
 
         if (domain.providerStations() != null) {
             for (ProviderStation stationDomain : domain.providerStations()) {
@@ -153,7 +156,11 @@ public final class ChargingLocationEntityMapper {
         );
 
         List<ProviderStation> providerStations = entity.getProviderStations() != null
-                ? entity.getProviderStations().stream().map(ChargingLocationEntityMapper::toDomain).toList()
+                ? entity.getProviderStations().stream()
+                        .map(ChargingLocationEntityMapper::toDomain)
+                        .sorted(java.util.Comparator.comparing(ProviderStation::name, String.CASE_INSENSITIVE_ORDER)
+                                .thenComparing(ProviderStation::providerStationId))
+                        .toList()
                 : List.of();
 
         List<ChargerUnit> chargerUnits = entity.getChargerUnits() != null
@@ -167,7 +174,8 @@ public final class ChargingLocationEntityMapper {
                 address,
                 providerStations,
                 chargerUnits,
-                null
+                null,
+                entity.getUpdatedAt() != null ? entity.getUpdatedAt() : Instant.now()
         );
     }
 
