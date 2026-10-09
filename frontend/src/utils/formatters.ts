@@ -53,20 +53,20 @@ export function getStatusBadge(status: LiveStatus): {
   }
 }
 
-export function getConnectorTypeLabel(type: ConnectorType): string {
+export function getConnectorTypeLabel(type: ConnectorType, count?: number): string {
   switch (type) {
     case 'CCS':
-      return 'CCS Combo 2';
+      return typeof count === 'number' && count > 1 ? `CCS Combo ${count}` : 'CCS';
     case 'CHAdeMO':
       return 'CHAdeMO';
     case 'TYPE_2':
-      return 'Type 2 (Mennekes)';
+      return 'Type 2';
     case 'TYPE_1':
-      return 'Type 1 (J1772)';
+      return 'Type 1';
     case 'SCHUKO':
       return 'Schuko 230V';
     default:
-      return 'Neznámy konektor';
+      return type || 'Neznámy konektor';
   }
 }
 
@@ -141,14 +141,15 @@ export function getConnectorTypeStats(connectors?: Connector[]): ConnectorTypeSt
     const currentType = matching[0]?.currentType || (type === 'TYPE_2' ? 'AC' : 'DC');
     const freeParking = matching.find(c => typeof c.freeParkingMinutes === 'number' && c.freeParkingMinutes > 0)?.freeParkingMinutes || null;
 
-    let shortLabel = type === 'TYPE_2' ? 'Type 2' : type;
+    const count = matching.length;
+    const shortLabel = type === 'TYPE_2' ? 'Type 2' : 'CCS';
 
     return {
       type,
-      label: getConnectorTypeLabel(type),
+      label: getConnectorTypeLabel(type, count),
       shortLabel,
       currentType,
-      totalCount: matching.length,
+      totalCount: count,
       availableCount: available,
       maxPowerKw: maxPower,
       freeParkingMinutes: freeParking,

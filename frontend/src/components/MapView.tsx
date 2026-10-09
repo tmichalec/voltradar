@@ -201,7 +201,7 @@ export const MapView: React.FC<MapViewProps> = ({
               const availColor = s.availableCount > 0 ? 'text-emerald-400' : 'text-rose-400';
 
               return `<div class="flex items-center justify-between gap-2 px-2 py-1 rounded text-[11px] ${badgeBg} border font-mono">
-                <span class="font-bold ${typeColor}">${s.shortLabel} (${s.currentType}):</span>
+                <span class="font-bold ${typeColor}">${s.label} (${s.currentType}):</span>
                 <span class="flex items-center gap-1.5">
                   <strong class="${availColor}">${s.availableCount}/${s.totalCount} voľné</strong>
                   <span class="text-slate-500">&bull;</span>
