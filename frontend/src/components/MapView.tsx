@@ -226,10 +226,10 @@ export const MapView: React.FC<MapViewProps> = ({
         .join('');
 
       marker.bindTooltip(
-        `<div class="p-2.5 min-w-[260px] max-w-[320px] font-sans space-y-2">
-          <div>
-            <div class="font-bold text-white text-[13px] leading-snug">${location.name}</div>
-            ${location.address?.street ? `<div class="text-[11px] text-slate-400 mt-0.5">${location.address.street}${location.address.city ? `, ${location.address.city}` : ''}</div>` : ''}
+        `<div class="p-2.5 min-w-[260px] max-w-[320px] font-sans space-y-2 overflow-hidden">
+          <div class="min-w-0">
+            <div class="font-bold text-white text-[13px] leading-snug truncate" title="${location.name}">${location.name}</div>
+            ${location.address?.street ? `<div class="text-[11px] text-slate-400 mt-0.5 truncate" title="${location.address.street}${location.address.city ? `, ${location.address.city}` : ''}">${location.address.street}${location.address.city ? `, ${location.address.city}` : ''}</div>` : ''}
           </div>
 
           <div class="space-y-1 border-y border-slate-700/60 py-1.5">
