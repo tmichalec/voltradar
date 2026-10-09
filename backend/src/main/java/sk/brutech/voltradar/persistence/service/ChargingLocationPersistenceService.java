@@ -139,6 +139,7 @@ public class ChargingLocationPersistenceService {
                 existingConnector.setActiveSessionsOnStand(incomingConnector.getActiveSessionsOnStand());
                 existingConnector.setLastKnownStatus(incomingConnector.getLastKnownStatus());
                 existingConnector.setLastStatusUpdate(incomingConnector.getLastStatusUpdate());
+                existingConnector.setFreeParkingMinutes(incomingConnector.getFreeParkingMinutes());
             } else {
                 toAdd.add(incomingConnector);
             }

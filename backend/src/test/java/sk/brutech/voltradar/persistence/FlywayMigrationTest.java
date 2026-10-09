@@ -38,6 +38,6 @@ class FlywayMigrationTest {
         assertThat(appliedMigrations).isNotEmpty();
         MigrationInfo current = flyway.info().current();
         assertThat(current).isNotNull();
-        assertThat(current.getVersion().getVersion()).isEqualTo("1");
+        assertThat(current.getVersion().getVersion()).isEqualTo("2");
     }
 }
