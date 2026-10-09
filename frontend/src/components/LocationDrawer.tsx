@@ -41,7 +41,7 @@ export const LocationDrawer: React.FC<LocationDrawerProps> = ({
   onRefreshLocation,
   isRefreshingLocation = false,
 }) => {
-  const [copiedEvse, setCopiedEvse] = useState<string | null>(null);
+  const [copiedText, setCopiedText] = useState<string | null>(null);
   const [showRawDetails, setShowRawDetails] = useState(false);
 
   // Stable sorting of provider stations by name (natural numeric order) and ID, and connectors by EVSE
@@ -82,8 +82,8 @@ export const LocationDrawer: React.FC<LocationDrawerProps> = ({
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    setCopiedEvse(text);
-    setTimeout(() => setCopiedEvse(null), 2000);
+    setCopiedText(text);
+    setTimeout(() => setCopiedText(null), 2000);
   };
 
   const gmapsUrl = getGoogleMapsUrl(
@@ -378,10 +378,36 @@ export const LocationDrawer: React.FC<LocationDrawerProps> = ({
                           {station.name}
                         </h4>
                       </div>
-                      <div className="text-xs text-slate-400 mt-1 flex items-center gap-2">
-                        <span>ID stanice: <strong className="font-mono text-slate-300">{station.providerStationId}</strong></span>
+                      <div className="text-xs text-slate-400 mt-1 flex items-center gap-2 flex-wrap">
+                        <div className="flex items-center gap-1.5 font-mono">
+                          <span className="text-slate-500 text-[11px]">ID stanice:</span>
+                          <strong className="text-slate-300">{station.providerStationId}</strong>
+                          <button
+                            onClick={() => copyToClipboard(station.providerStationId)}
+                            title="Kopírovať ID stanice"
+                            className="p-1 hover:text-white transition-colors cursor-pointer text-slate-500 hover:text-slate-300"
+                          >
+                            {copiedText === station.providerStationId ? (
+                              <Check className="w-3 h-3 text-emerald-400" />
+                            ) : (
+                              <Copy className="w-3 h-3" />
+                            )}
+                          </button>
+                          <a
+                            href={`https://zsedrive.sk/api/v4.7/stations/${station.providerStationId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Otvoriť JSON stanice (ZSE API)"
+                            className="p-1 hover:text-cyan-400 transition-colors cursor-pointer text-slate-500 hover:text-cyan-400 inline-flex items-center"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </div>
                         {station.rawProviderType && (
-                          <span>&bull; Typ: <strong className="text-slate-300">{station.rawProviderType}</strong></span>
+                          <span className="text-slate-500">
+                            &bull; <span className="text-slate-400">Typ:</span>{' '}
+                            <strong className="text-slate-300">{station.rawProviderType}</strong>
+                          </span>
                         )}
                       </div>
                     </div>
@@ -464,9 +490,9 @@ export const LocationDrawer: React.FC<LocationDrawerProps> = ({
                                       <button
                                         onClick={() => copyToClipboard(connector.evseId)}
                                         title="Kopírovať EVSE ID"
-                                        className="p-1 hover:text-white transition-colors cursor-pointer text-slate-500"
+                                        className="p-1 hover:text-white transition-colors cursor-pointer text-slate-500 hover:text-slate-300"
                                       >
-                                        {copiedEvse === connector.evseId ? (
+                                        {copiedText === connector.evseId ? (
                                           <Check className="w-3 h-3 text-emerald-400" />
                                         ) : (
                                           <Copy className="w-3 h-3" />
@@ -542,7 +568,29 @@ export const LocationDrawer: React.FC<LocationDrawerProps> = ({
                 <div key={station.providerStationId} className="space-y-1 pb-3 border-b border-slate-800/60 last:border-0 last:pb-0">
                   <div className="flex justify-between items-center text-slate-300 font-medium">
                     <span>{station.name}</span>
-                    <span className="text-slate-500 font-mono text-[11px]">ID: {station.providerStationId}</span>
+                    <div className="flex items-center gap-1.5 font-mono text-[11px] text-slate-400">
+                      <span>ID: {station.providerStationId}</span>
+                      <button
+                        onClick={() => copyToClipboard(station.providerStationId)}
+                        title="Kopírovať ID stanice"
+                        className="p-0.5 hover:text-white transition-colors cursor-pointer text-slate-500 hover:text-slate-300"
+                      >
+                        {copiedText === station.providerStationId ? (
+                          <Check className="w-3 h-3 text-emerald-400" />
+                        ) : (
+                          <Copy className="w-3 h-3" />
+                        )}
+                      </button>
+                      <a
+                        href={`https://zsedrive.sk/api/v4.7/stations/${station.providerStationId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Otvoriť JSON stanice (ZSE API)"
+                        className="p-0.5 hover:text-cyan-400 transition-colors cursor-pointer text-slate-500 hover:text-cyan-400 inline-flex items-center"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </div>
                   </div>
                   <div className="text-slate-500 text-[11px]">
                     Typ: <span className="text-slate-400">{station.rawProviderType || 'N/A'}</span> | GPS: {station.coordinates?.latitude ?? 'N/A'}, {station.coordinates?.longitude ?? 'N/A'}
